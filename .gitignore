@@ -1,0 +1,4 @@
+*.o
+fake6502
+rom
+hello_world

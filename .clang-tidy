@@ -1,0 +1,20 @@
+Checks: |
+  *,
+
+#WarningsAsErrors: '*'
+WarningsAsErrors: |
+  clang-diagnostic-implicit-function-declaration,
+HeaderFilterRegex: '*'
+FormatStyle: file
+
+#CheckOptions:
+#  - key:             modernize-use-override.AllowOverrideAndFinal
+#    value:           'true'
+#  - key:             modernize-use-override.IgnoreDestructors
+#    value:           'true'
+#  - key:             performance-for-range-copy.WarnOnAllAutoCopies
+#    value:           'true'
+#  - key:             cppcoreguidelines-narrowing-conversions.WarnOnEquivalentBitWidth
+#    value:           'false'
+#  - key:             readability-implicit-bool-conversion.AllowPointerConditions
+#    value:           'true'
