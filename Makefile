@@ -40,9 +40,6 @@ $(OBJS): %.o: %.c
 subprojects: $(SUBPROJS)
 	$(foreach var,$(SUBPROJS),echo building $(var):;$(MAKE) -C $(var);)
 
-format:
-	${CLANG_FORMAT}
-
 test: fake6502 ${ROMS}
 	$(MAKE) -C roms test
 
