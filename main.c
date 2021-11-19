@@ -6,23 +6,38 @@
 #include "include/fake6502.h"
 
 #define IO_OUT 0x0300
+#define HALT 0x0301
+
+#define ADDRESS_SPACE 65536
 
 #define ROM_SIZE 32768
 uint8_t ROM[ROM_SIZE]; // NOLINT
 
+uint8_t STATE = 0b00000000;
+uint8_t HALTED = 0b00000001;
+
 uint8_t read6502(uint16_t address) {
-    if (address > ROM_SIZE) {
-        address -= ROM_SIZE;
+    switch (address) {
+        default:
+            // ROM is duplicated across first and second half of
+            // the address space
+            if (address > ADDRESS_SPACE - ROM_SIZE) {
+                address -= ROM_SIZE;
+            }
+            return ROM[(unsigned int)address];
     }
-    uint8_t value = ROM[(unsigned int)address];
-    return value;
 }
 
 void write6502(uint16_t address, uint8_t value) {
-    if (address == IO_OUT) {
-        printf("%c", value);
-    } else {
-        ROM[(int)address] = value;
+    switch (address) {
+        case IO_OUT:
+            printf("%c", value);
+            break;
+        case HALT:
+            STATE |= HALTED;
+            break;
+        default:
+            ROM[(int)address] = value;
     }
 }
 
@@ -33,22 +48,18 @@ void initialize_rom() {
     }
 }
 
+const int BUFFER_SIZE = 4096;
 int load_rom(char* path) {
-    FILE *fp = fopen(path, "r");
+    FILE *fp = fopen(path, "re");
     if (fp == NULL) {
         return 0;
     } else {
-        unsigned char buffer[4096];
+        unsigned char buffer[BUFFER_SIZE];
         unsigned int p = 0;
-        size_t size;
+        size_t size = 0;
         while ((size = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
             for (int i = 0; i < size; i++) {
-                ROM[p+1] = buffer[i];
-                /*if ( i % 2 == 0 ) {
-                    ROM[p+1] = buffer[i];
-                } else {
-                    ROM[p-1] = buffer[i];
-                }*/
+                ROM[p] = buffer[i];
                 p++;
             }
         }
@@ -68,19 +79,16 @@ int main(int argc, char* argv[]) {
     if (argc < 2) {
         printf("Please supply a rom\n");
         return 1;
-    } else {
-        if (load_rom(argv[1])) {
-            l();
-            reset6502();
-            l();
-            for (int i = 0; i < 100; i++) {
-                step6502();
-                l();
-            }
-            return 0;
-        } else {
-            printf("Unable to read rom\n");
-        return 1;
-        }
     }
+    if (load_rom(argv[1])) {
+        l();
+        reset6502();
+        while ((STATE & HALTED) == 0) {
+            step6502();
+        }
+        //printf("Halted\n");
+        return 0;
+    }
+    printf("Unable to read rom\n");
+    return 1;
 }

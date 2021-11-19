@@ -32,6 +32,8 @@ reset:
     sta $0300
     lda #"\n"
     sta $0300
+    lda #$01
+    sta $0301
 
 loop:
     ror
