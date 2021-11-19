@@ -11,7 +11,7 @@ LDFLAGS ?= -fuse-ld=lld
 CLANG_TIDY ?= clang-tidy
 CLANG_FORMAT ?= clang-format
 LIBS ?=
-CPU ?= 6502
+export CPU ?= 65c02
 
 ifeq "${CPU}" "65C02"
 	override CPU = 65c02
