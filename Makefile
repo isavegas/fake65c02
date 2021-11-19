@@ -47,10 +47,10 @@ format:
 	${CLANG_FORMAT} --style=llvm -i *.c
 
 tidy:
-	${CLANG_TIDY} -checks='*' main.c
+	${CLANG_TIDY} -checks='*' main.c -- ${CFLAGS}
 
 tidy_all:
-	${CLANG_TIDY} -checks='*' main.c fake6502.c
+	${CLANG_TIDY} -checks='*' main.c fake6502.c -- ${CFLAGS}
 
 clean:
 	-rm -f fake6502 fake6502_debug *.o

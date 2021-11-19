@@ -1,19 +1,20 @@
     .org $8000
 
 print:
+    lda #"i"
+    sta $7001
+
     lda #"\n"
-    sta $0300
+    sta $7001
     rts
 
 reset:
-    lda #$ff
-    sta $6002
-
     lda #"h"
-    sta $0300
+    sta $7001
     jsr print
 
-    sta $0301 ; halt the cpu
+    lda $01
+    sta $7002 ; halt the cpu
 
     .org $fffc
     .word reset

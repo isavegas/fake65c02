@@ -1,40 +1,42 @@
-#include <stddef.h>
-#include <stdint.h>
-// NOLINTNEXTLINE(llvmlibc-restrict-system-libc-headers)
-#include <stdio.h>
+#include "include/main.h"
 
-#ifdef FAKE6502
-#include "include/fake6502.h"
-#endif
-#ifdef FAKE65c02
-#include "include/fake65c02.h"
-#endif
-
-#if !defined(FAKE6502) && !defined(FAKE65c02)
-#error CPU type not provided
-#endif
-
-#define IO_OUT 0x0300
-#define HALT 0x0301
+#define IO_OUT 0x7001
+#define HALT 0x7002
 
 #define ADDRESS_SPACE 65536
 
-#define ROM_SIZE 32768
+#define RAM_SIZE 0x8000
+const uint16_t RAM_LOCATION = 0x0000;
+uint8_t RAM[RAM_SIZE]; //NOLINT
+
+#define ROM_SIZE 0x8000
+const uint16_t ROM_LOCATION = 0x8000;
 uint8_t ROM[ROM_SIZE]; // NOLINT
 
 uint8_t STATE = 0b00000000;
 uint8_t HALTED = 0b00000001;
+
 uint8_t last_char = 0;
+uint8_t exit_code = 0;
 
 uint8_t read6502(uint16_t address) {
   switch (address) {
   default:
-    // ROM is duplicated across first and second half of
-    // the address space
-    if (address > ADDRESS_SPACE - ROM_SIZE) {
-      address -= ROM_SIZE;
+    if (address >= RAM_LOCATION && address < RAM_LOCATION + RAM_SIZE) {
+      /*
+      unsigned int addr = address - RAM_LOCATION;
+      printf("read ram $%04x -> $%04x :: $%02x\n", address, addr, RAM[addr]);
+      */
+      return RAM[(unsigned int)(address - RAM_LOCATION)];
     }
-    return ROM[(unsigned int)address];
+    if (address >= ROM_LOCATION && address < ROM_LOCATION + ROM_SIZE) {
+      /*
+      unsigned int addr = address - ROM_LOCATION;
+      printf("read rom $%04x -> $%04x :: $%02x\n", address, addr, ROM[addr]);
+      */
+      return ROM[(unsigned int)(address - ROM_LOCATION)];
+    }
+    return 0xea;
   }
 }
 
@@ -46,21 +48,33 @@ void write6502(uint16_t address, uint8_t value) {
     break;
   case HALT:
     STATE |= HALTED;
+    exit_code = value;
     break;
   default:
-    ROM[(int)address] = value;
-  }
+    if (address >= RAM_LOCATION && address < RAM_LOCATION + RAM_SIZE) {
+      //printf("write $%04x -> $%04x\n", address, (unsigned int)(address - RAM_LOCATION));
+      RAM[(unsigned int)(address - RAM_LOCATION)] = value;
+    }
+    if (address >= ROM_LOCATION && address < ROM_LOCATION + ROM_SIZE) {
+#ifdef WRITABLE_ROM
+      //printf("write $%04x -> $%04x\n", address, (unsigned int)(address - ROM_LOCATION));
+      ROM[(unsigned int)(address - ROM_LOCATION)] = value;
+#else
+      // Nothing happens. Perhaps throw error down the line?
+#endif
+    }
+    }
 }
 
-// Fill ROM with noop
-void initialize_rom() {
-  for (int i = 0; i < ROM_SIZE; i++) {
-    ROM[i] = 0xea; // NOLINT
+// Fill with noop
+void initialize(uint8_t* bytes, int size) {
+  for (int i = 0; i < size; i++) {
+    bytes[i] = 0xea; // NOLINT
   }
 }
 
 const int BUFFER_SIZE = 4096;
-int load_rom(char *path) {
+int load_rom(char *path, unsigned int rom_size) {
   FILE *fp = fopen(path, "re");
   if (fp == NULL) {
     return 0;
@@ -70,8 +84,12 @@ int load_rom(char *path) {
     size_t size = 0;
     while ((size = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
       for (int i = 0; i < size; i++) {
-        ROM[p] = buffer[i];
-        p++;
+        if (p < rom_size) {
+          ROM[p] = buffer[i];
+          p++;
+        } else {
+          return 1;
+        }
       }
     }
   }
@@ -79,27 +97,31 @@ int load_rom(char *path) {
 }
 
 void l() {
-  printf("Clock: %i, Instructions: %i\n", clockticks6502, instructions);
+//  printf("Clock: %i, Instructions: %i, PC: $%04x, OP: $%02x\n", clockticks6502, instructions, pc, opcode);
 }
 
-#undef NES_CPU
-#define UNDOCUMENTED
-
 int main(int argc, char *argv[]) {
-  initialize_rom();
+  initialize(ROM, ROM_SIZE);
+  initialize(RAM, RAM_SIZE);
   if (argc < 2) {
     printf("Please supply a rom\n");
     return 1;
   }
-  if (load_rom(argv[1])) {
-    reset6502();
+  if (load_rom(argv[1], ROM_SIZE)) {
+//    printf("$%02x, $%02x :: $%02x, $%02x\n", ROM[0x7ffc], ROM[0x7ffd], read6502(0xfffc), read6502(0xfffd));
+//    printf("$0000: $%02x, $0001: $%02x :: $8000: $%02x, $8001: $%02x\n", ROM[0x0000], ROM[0x0001], read6502(0x8000), read6502(0x8001));
+    l();
+    reset6502(); l();
     while ((STATE & HALTED) == 0) {
-      step6502();
+      step6502(); l();
     }
     if (last_char != '\n') {
       printf("\n");
     }
-    return 0;
+    if (exit_code > 0) {
+        printf("Exited with code: %i\n", exit_code);
+    }
+    return exit_code;
   }
   printf("Unable to read rom\n");
   return 1;

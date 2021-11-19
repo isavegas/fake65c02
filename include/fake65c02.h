@@ -11,6 +11,10 @@ void nmi6502();
 void exec6502(uint32_t tickcount);
 void hookexternal(void *funcptr);
 
+extern uint16_t pc;
+extern uint8_t sp, a, x, y, status;
+extern uint8_t opcode, oldstatus;
+
 extern uint32_t clockticks6502; // NOLINT
 extern uint32_t instructions; // NOLINT
 

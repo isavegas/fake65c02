@@ -1,50 +1,24 @@
     .org $8000
 
-check_65c02:
-    ldx #$ff
-    phx
-    plx
+print:
+    lda #"\n"
+    sta $0300
+
+    lda $01
+    sta $0301 ; halt the cpu
+
+    rts
 
 reset:
     lda #$ff
     sta $6002
 
-    lda #"H"
+    lda #"h"
     sta $0300
-    lda #"e"
-    sta $0300
-    lda #"l"
-    sta $0300
-    lda #"l"
-    sta $0300
-    lda #"o"
-    sta $0300
-    lda #","
-    sta $0300
-    lda #" "
-    sta $0300
-    lda #"w"
-    sta $0300
-    lda #"o"
-    sta $0300
-    lda #"r"
-    sta $0300
-    lda #"l"
-    sta $0300
-    lda #"d"
-    sta $0300
-    lda #"!"
-    sta $0300
-    lda #"\n"
-    sta $0300
-    lda #$01
-    sta $0301
+    jsr print
 
-loop:
-    ror
-    sta $6000
-
-    jmp loop
+    lda $00
+    sta $0301 ; halt the cpu
 
     .org $fffc
     .word reset

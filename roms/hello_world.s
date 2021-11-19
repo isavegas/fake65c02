@@ -5,41 +5,35 @@ reset:
     sta $6002
 
     lda #"H"
-    sta $0300
+    sta $7001
     lda #"e"
-    sta $0300
+    sta $7001
     lda #"l"
-    sta $0300
+    sta $7001
     lda #"l"
-    sta $0300
+    sta $7001
     lda #"o"
-    sta $0300
+    sta $7001
     lda #","
-    sta $0300
+    sta $7001
     lda #" "
-    sta $0300
+    sta $7001
     lda #"w"
-    sta $0300
+    sta $7001
     lda #"o"
-    sta $0300
+    sta $7001
     lda #"r"
-    sta $0300
+    sta $7001
     lda #"l"
-    sta $0300
+    sta $7001
     lda #"d"
-    sta $0300
+    sta $7001
     lda #"!"
-    sta $0300
+    sta $7001
     lda #"\n"
-    sta $0300
-    lda #$01
-    sta $0301
-
-loop:
-    ror
-    sta $6000
-
-    jmp loop
+    sta $7001
+    lda #$00
+    sta $7002
 
     .org $fffc
     .word reset
