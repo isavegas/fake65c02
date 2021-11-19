@@ -23,15 +23,15 @@ all: $(ROMS) functional_tests
 $(ROMS): tests/%.bin: tests/%.s
 	${ASM} ${ASMFLAGS} -o $@ $<
 
-functional_tests: as65
+functional_tests:
 	sh -c "cd 6502_65C02_functional_tests/ca65 && ./asm_cmp.sh 6502_functional_test && mv 6502_functional_test.bin ../../"
 	sh -c "cd 6502_65C02_functional_tests/ca65 && ./asm_cmp.sh 6502_decimal_test && mv 6502_decimal_test.bin ../../"
 
 %.s:
 	touch $@
 
-as65:
-	unzip 6502_65C02_functional_tests/as65_142.zip as65
+#as65:
+#	unzip 6502_65C02_functional_tests/as65_142.zip as65
 
 test: ${ROMS}
 	$(foreach var,$(ROMS),echo running $(var):;../fake6502 $(var);)
