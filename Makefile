@@ -46,6 +46,9 @@ format:
 test: fake6502 ${ROMS}
 	$(MAKE) -C roms test
 
+format:
+	${CLANG_FORMAT} --style=llvm -i *.c
+
 tidy:
 	${CLANG_TIDY} -checks='*' main.c
 

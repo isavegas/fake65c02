@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
       step6502();
     }
     if (last_char != '\n') {
-        printf("\n");
+      printf("\n");
     }
     return 0;
   }
