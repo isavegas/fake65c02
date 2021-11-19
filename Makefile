@@ -2,17 +2,24 @@ SHELL= /bin/sh
 
 ASM ?= vasm6502_oldstyle
 ASMFLAGS ?= -Fbin -esc -dotdir
-CC = clang
+CC = clang -Werror=implicit-function-declaration
 CFLAGS ?= -march=native
-INCLUDES += -Iinclude
+INCLUDES +=
 RELEASE_CFLAGS ?= -O2
 DEBUG_CFLAGS ?= -g -O0
 LDFLAGS ?= -fuse-ld=lld
 CLANG_TIDY ?= clang-tidy
 CLANG_FORMAT ?= clang-format
 LIBS ?=
+CPU ?= 6502
 
-OBJS= main.o fake6502.o
+ifeq "${CPU}" "65C02"
+	override CPU = 65c02
+endif
+
+CFLAGS += -D FAKE${CPU}
+
+OBJS= main.o fake${CPU}.o
 SUBPROJS= roms
 
 .PHONY: all
