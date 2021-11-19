@@ -37,8 +37,7 @@ format:
 	${CLANG_FORMAT}
 
 test: fake6502 ${ROMS}
-	./fake6502 rom
-	./fake6502 hello_world
+	$(MAKE) -C roms test
 
 tidy:
 	${CLANG_TIDY} -checks='*' main.c
