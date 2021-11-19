@@ -1,39 +1,39 @@
     .org $8000
 
-reset:
-    lda #$ff
-    sta $6002
+    include ../lib.s
 
+reset:
     lda #"H"
-    sta $7001
+    sta SERIAL
     lda #"e"
-    sta $7001
+    sta SERIAL
     lda #"l"
-    sta $7001
+    sta SERIAL
     lda #"l"
-    sta $7001
+    sta SERIAL
     lda #"o"
-    sta $7001
+    sta SERIAL
     lda #","
-    sta $7001
+    sta SERIAL
     lda #" "
-    sta $7001
+    sta SERIAL
     lda #"w"
-    sta $7001
+    sta SERIAL
     lda #"o"
-    sta $7001
+    sta SERIAL
     lda #"r"
-    sta $7001
+    sta SERIAL
     lda #"l"
-    sta $7001
+    sta SERIAL
     lda #"d"
-    sta $7001
+    sta SERIAL
     lda #"!"
-    sta $7001
+    sta SERIAL
     lda #"\n"
-    sta $7001
+    sta SERIAL
+
     lda #$00
-    sta $7002
+    sta HALT
 
     .org $fffc
     .word reset
