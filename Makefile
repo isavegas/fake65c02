@@ -23,6 +23,7 @@ ifdef FIX
 endif
 
 CFLAGS += -D FAKE${CPU}
+CFLAGS += -D WRITABLE_VECTORS
 
 OBJS= main.o fake${CPU}.o
 SUBPROJS= roms

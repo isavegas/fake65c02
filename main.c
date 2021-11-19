@@ -67,12 +67,18 @@ void write6502(uint16_t address, uint8_t value) {
       RAM[(unsigned int)(address - RAM_LOCATION)] = value;
     }
     if (address >= ROM_LOCATION && address < ROM_LOCATION + ROM_SIZE) {
+      unsigned int addr = (unsigned int)(address - ROM_LOCATION);
 #ifdef WRITABLE_ROM
       // printf("write $%04x -> $%04x\n", address, (unsigned int)(address -
       // ROM_LOCATION));
-      ROM[(unsigned int)(address - ROM_LOCATION)] = value;
+      ROM[addr] = value;
 #else
-      // Nothing happens. Perhaps throw error down the line?
+#ifdef WRITABLE_VECTORS
+      // Most of ROM is not writable, but we allow vectors to be written
+      if (addr >= 0xfffc) {
+        ROM[addr] = value;
+      }
+#endif
 #endif
     }
   }

@@ -1,3 +1,4 @@
 fake6502
 *.o
 /roms/*.bin
+/roms/as65
