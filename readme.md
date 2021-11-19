@@ -26,16 +26,27 @@ their status.
 * Line defining `NES_CPU` commented out
 * Line defining `UNDOCUMENTED` has been commented out
 
-### Instructions added in fake65c02.c
+### Instructions added by the 65c02
 
-Instruction       | OP    | Description
-------------------|-------|-----------------------------------------------------
-[ ] `PHX`         | `$DA` | push X onto the hardware stack, without disturbing A
-[ ] `PLX`         | `$FA` | pull X  off the hardware stack, without disturbing A
-[ ] `PHY`         | `$5A` | push Y onto the hardware stack, without disturbing A
-[ ] `PLY`         | `$7A` | pull Y  off the hardware stack, without disturbing A
-[ ] `STZ ZP,X`    | `$74` | At the ZP addr indicated by the operand plus X, store 00.
-[ ] `STZ abs,X`   | `$9E` | At the 16|bit addr indicated by the operand plus X, store 00.
-[ ] `BIT ZP,X`    | `$34` | (new addressing mode for the BIT instruction)
-[ ] `BIT abs,X`   | `$3C` | (new addressing mode for the BIT instruction)
-[ ] `JMP (abs,X)` | `$7C` | (new addressing mode for the JMP instruction)
+Instruction   | OP    | Description
+--------------|-------|-----------------------------------------------------
+`PHX`         | `$DA` | push X onto the hardware stack, without disturbing A
+`PLX`         | `$FA` | pull X  off the hardware stack, without disturbing A
+`PHY`         | `$5A` | push Y onto the hardware stack, without disturbing A
+`PLY`         | `$7A` | pull Y  off the hardware stack, without disturbing A
+`STZ ZP,X`    | `$74` | At the ZP addr indicated by the operand plus X, store 00.
+`STZ abs,X`   | `$9E` | At the 16|bit addr indicated by the operand plus X, store 00.
+`BIT ZP,X`    | `$34` | (new addressing mode for the BIT instruction)
+`BIT abs,X`   | `$3C` | (new addressing mode for the BIT instruction)
+`JMP (abs,X)` | `$7C` | (new addressing mode for the JMP instruction)
+
+### TODO
+- [ ] `PHX`
+- [ ] `PLX`
+- [ ] `PHY`
+- [ ] `PLY`
+- [ ] `STZ ZP,X`
+- [ ] `STZ abs,X`
+- [ ] `BIT ZP,X`
+- [ ] `BIT abs,X`
+- [ ] `JMP (abs,X)`
