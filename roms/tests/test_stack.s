@@ -2,29 +2,34 @@
 
     include ../lib.s
 
-print_hi:
-    ldx #"h"
-    stx SERIAL
-    ldx #"i"
-    stx SERIAL
+s_print_hi:
+    lda #"h"
+    sta SERIAL
+    lda #"i"
+    sta SERIAL
 
     rts
 
-print:
-    jsr print_hi
+s_print:
+    jsr s_print_hi
 
-    ldx #"\n"
-    stx SERIAL
+    lda #"\n"
+    sta SERIAL
 
-    ldx #$00
-    jsr halt
+    lda #$00
+    jmp halt
 
+m_abc: .string "abc\n"
 
 reset:
-    jsr print ; Check if stack works
+    ldx #<m_abc ; Lower byte
+    lda #>m_abc ; Upper byte
+    jsr print   ; Jump to print subroutine
 
-    ldx #$01
-    ldx HALT ; Stack not operational
+    jsr s_print ; Check if stack works
+
+    lda #$01
+    sta HALT ; Stack not operational
 
     .org $fffc
     .word reset

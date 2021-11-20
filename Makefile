@@ -11,12 +11,8 @@ LDFLAGS ?= -fuse-ld=lld
 CLANG_TIDY ?= clang-tidy
 TIDY_FLAGS ?= -checks='*'
 CLANG_FORMAT ?= clang-format
+FORMAT_FLAGS ?=
 LIBS ?=
-export CPU ?= 65c02
-
-ifeq "${CPU}" "65C02"
-	override CPU = 65c02
-endif
 
 ifdef FIX
 	TIDY_FLAGS += -fix-errors
@@ -24,19 +20,20 @@ endif
 
 CFLAGS += -D FAKE${CPU}
 CFLAGS += -D WRITABLE_VECTORS
+#CFLAGS += -D UNDOCUMENTED
 
-OBJS= main.o fake${CPU}.o
+OBJS= main.o fake6502.o fake65c02.o
 SUBPROJS= roms
 
-.PHONY: all
+.PHONY: all $(SUBPROJS)
 
-all: fake6502
+all: fake6502 fake65c02
 
-fake6502: ${OBJS} ${ROMS}
-	${CC} ${CFLAGS} ${INCLUDES} ${RELEASE_CFLAGS} ${LDFLAGS} -o $@ ${OBJS} ${LIBS}
+fake6502: main.o fake6502.o
+	${CC} ${CFLAGS} ${INCLUDES} ${RELEASE_CFLAGS} ${LDFLAGS} -o $@ $^ ${LIBS}
 
-fake6502_debug: ${OBJS} ${ROMS}
-	${CC} ${CFLAGS} ${INCLUDES} ${DEBUG_CFLAGS} ${LDFLAGS} -o $@ ${OBJS} ${LIBS}
+fake65c02: main.o fake65c02.o
+	${CC} ${CFLAGS} ${INCLUDES} ${RELEASE_CFLAGS} ${LDFLAGS} -o $@ $^ ${LIBS}
 
 $(OBJS): %.o: %.c
 
