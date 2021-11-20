@@ -1,8 +1,12 @@
 #include "include/main.h"
 
+// Ports
 #define IO_IN 0x7fff
 #define IO_OUT 0x8000
 #define HALT 0x8001
+
+// Messages
+#define IO_HOOK 0xff
 
 #define NOOP 0xea
 
@@ -54,6 +58,10 @@ void write6502(uint16_t address, uint8_t value) {
   case SERIAL_OUT:
     if (!serial_written) serial_written = 1;
     printf("%c", value);
+#ifdef DEBUG
+    if (value == '\n' || value == '\0') // Only flush on \n in release build
+#endif
+        fflush(stdout); // Flush every byte in debug build
     serial_last = serial;
     serial = value;
     break;
@@ -139,10 +147,19 @@ int main(int argc, char *argv[]) {
     l();
     while ((STATE & HALTED) == 0) {
       step6502();
-      l();
+      switch (io_out) {
+      case IO_HOOK:
+        printf("PC: $%04x\n", pc);
+        fflush(stdout);
+        io_out = 0x00;
+        break;
+      default:
+        ;
+      }
     }
     if (serial != '\n' && (serial == 0 && serial_last != '\n') && serial_written == 1) {
       printf("\n");
+      fflush(stdout);
     }
     if (exit_code > 0) {
       printf("Exited with code: %i\n", exit_code);

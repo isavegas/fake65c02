@@ -1,7 +1,12 @@
 SHELL= /bin/sh
 
 ASM ?= vasm6502_oldstyle
-ASMFLAGS ?= -Fbin -esc -c02 -quiet -chklabels
+ASM_FLAGS ?= -Fbin -esc -c02 -quiet -chklabels
+DEBUG ?=
+
+ifdef DEBUG
+	ASM_FLAGS += -DDEBUG
+endif
 
 TESTS = tests/test_stack.bin tests/test_65c02.bin
 EXAMPLES = examples/hello_world.bin
@@ -11,10 +16,10 @@ EXAMPLES = examples/hello_world.bin
 all: examples $(TESTS)
 
 $(TESTS): %.bin: %.s %.lst lib.s
-	${ASM} ${ASMFLAGS} -o $@ -L $(word 2, $^) $<
+	${ASM} ${ASM_FLAGS} -o $@ -L $(word 2, $^) $<
 
 $(EXAMPLES): %.bin: %.s %.lst lib.s
-	${ASM} ${ASMFLAGS} -o $@ -L $(word 2, $^) $<
+	${ASM} ${ASM_FLAGS} -o $@ -L $(word 2, $^) $<
 
 %.lst:
 	touch $@

@@ -1,8 +1,10 @@
 IO_IN = $7fff
-IO_OUT = $8001
+IO_OUT = $8000
 HALT = $8001
 SERIAL = $ffff
 PRINT_PTR = $BA
+
+IO_HOOK = $ff
 
 print_char:
     sta SERIAL
@@ -54,3 +56,15 @@ halt:
         tax
         pla
     endm
+
+    ifdef DEBUG
+    macro debug
+        pha
+        lda #IO_HOOK
+        sta IO_OUT
+        pla
+    endm
+    else
+    macro debug
+    endm
+    endif

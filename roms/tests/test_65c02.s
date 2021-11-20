@@ -1,6 +1,7 @@
     org $8000
 
     include ../lib.s
+    include test_65c02_strings.s
 
     macro test_ph,r
 test_ph\r\():
@@ -164,37 +165,40 @@ test_bit_zp_x_error_:
     load_registers
     rts
 
-m_debug: string "DEBUG\n"
-m_phx_success: string "PHX pass\n"
-m_phx_error: string "PHX fail\n"
-m_plx_success: string "PLX pass\n"
-m_plx_error: string "PLX fail\n"
-m_phy_success: string "PHY pass\n"
-m_phy_error: string "PHY fail\n"
-m_ply_success: string "PLY pass\n"
-m_ply_error: string "PLY fail\n"
-m_stz_abs_success: string "STZ abs pass\n"
-m_stz_abs_error: string "STZ abs fail\n"
-m_stz_zp_success: string "STZ zp pass\n"
-m_stz_zp_error: string "STZ zp fail\n"
-m_stz_abs_x_success: string "STZ abs,x pass\n"
-m_stz_abs_x_error: string "STZ abs,x fail\n"
-m_stz_zp_x_success: string "STZ zp,x pass\n"
-m_stz_zp_x_error: string "STZ zp,x fail\n"
-m_bit_abs_x_success: string "BIT abs,x pass\n"
-m_bit_abs_x_error: string "BIT abs,x fail\n"
-m_bit_zp_x_success: string "BIT zp,x pass\n"
-m_bit_zp_x_error: string "BIT zp,x fail\n"
+test_jmp_indirect_x:
+    save_registers
+    lda #<test_jmp_indirect_x_zero_success_
+    sta $0000
+    lda #>test_jmp_indirect_x_zero_success_
+    sta $0001
+    lda #<test_jmp_indirect_x_offset_success_
+    sta $0002
+    lda #>test_jmp_indirect_x_offset_success_
+    sta $0003
+    ldx #$0000
+    jmp ($0000,x)
+    jmp halt
+    jmp test_jmp_indirect_x_error_
+test_jmp_indirect_x_zero_success_:
+    ldx #2
+    jmp ($0000,x)
+    jmp test_jmp_indirect_x_error_
+test_jmp_indirect_x_offset_success_:
+    ;jmp test_jmp_indirect_x_error_
+    printstr m_jmp_indirect_x_success
+    load_registers
+    rts
+test_jmp_indirect_x_error_:
+    printstr m_jmp_indirect_x_error
+    load_registers
+    rts
 
-m_stack_success: string "Stack pass\n"
-m_stack_error: string "Stack fail\n"
-
-m_success: string "Success\n"
-m_error: string "Error\n"
-m_finish: string "Finished\n"
-m_start: string "Starting\n"
 
 reset:
+    ifdef DEBUG
+        printstr m_debug
+    endif
+
     printstr m_start
 
     jsr test_phx
@@ -210,6 +214,8 @@ reset:
 
     jsr test_bit_abs_x
     jsr test_bit_zp_x
+
+    jsr test_jmp_indirect_x
 
     printstr m_finish
 

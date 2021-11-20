@@ -6,7 +6,8 @@ CC = clang -Werror=implicit-function-declaration
 CFLAGS ?= -march=native
 INCLUDES +=
 RELEASE_CFLAGS ?= -O2
-DEBUG_CFLAGS ?= -g -O0
+export DEBUG ?=
+DEBUG_CFLAGS ?= -g -O0 -D DEBUG
 LDFLAGS ?= -fuse-ld=lld
 CLANG_TIDY ?= clang-tidy
 TIDY_FLAGS ?= -checks='*'
@@ -18,7 +19,12 @@ ifdef FIX
 	TIDY_FLAGS += -fix-errors
 endif
 
-CFLAGS += -D FAKE${CPU}
+ifdef DEBUG
+	CFLAGS += ${DEBUG_CFLAGS}
+else
+  CFLAGS += ${RELEASE_CFLAGS}
+endif
+
 CFLAGS += -D WRITABLE_VECTORS
 CFLAGS += -D UNDOCUMENTED
 
@@ -30,10 +36,10 @@ SUBPROJS= roms
 all: fake6502 fake65c02
 
 fake6502: main.o fake6502.o
-	${CC} ${CFLAGS} ${INCLUDES} ${RELEASE_CFLAGS} ${LDFLAGS} -o $@ $^ ${LIBS}
+	${CC} ${CFLAGS} ${INCLUDES} ${LDFLAGS} -o $@ $^ ${LIBS}
 
 fake65c02: main.o fake65c02.o
-	${CC} ${CFLAGS} ${INCLUDES} ${RELEASE_CFLAGS} ${LDFLAGS} -o $@ $^ ${LIBS}
+	${CC} ${CFLAGS} ${INCLUDES} ${LDFLAGS} -o $@ $^ ${LIBS}
 
 $(OBJS): %.o: %.c
 
