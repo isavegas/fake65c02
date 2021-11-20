@@ -48,6 +48,85 @@ test_pl\r\()_error_:
     test_ph y
     test_pl y
 
+test_stz_abs:
+    save_registers
+    lda #1
+    sta $0000
+    stz $0000
+    lda $0000
+    cmp #0
+    bne test_stz_abs_error_
+    printstr m_stz_abs_success
+    load_registers
+    rts
+test_stz_abs_error_:
+    printstr m_stz_abs_error
+    load_registers
+    rts
+
+test_stz_zp:
+    save_registers
+    lda #1
+    sta $00
+    stz $00
+    lda $00
+    cmp #0
+    bne test_stz_zp_error_
+    printstr m_stz_zp_success
+    load_registers
+    rts
+test_stz_zp_error_:
+    printstr m_stz_abs_error
+    load_registers
+    rts
+
+test_stz_abs_x:
+    save_registers
+    lda #1
+    sta $0000
+    sta $0001
+    ldx #0
+    stz $0000,x
+    lda $0000,x
+    cmp #0
+    bne test_stz_abs_x_error_
+    ldx #1
+    stz $0000,x
+    lda $0000,x
+    cmp #0
+    bne test_stz_abs_x_error_
+    printstr m_stz_abs_x_success
+    load_registers
+    rts
+test_stz_abs_x_error_:
+    printstr m_stz_abs_x_error
+    load_registers
+    rts
+
+test_stz_zp_x:
+    save_registers
+    lda #1
+    sta $00
+    sta $01
+    ldx #0
+    stz $00,x
+    lda $00,x
+    cmp #0
+    bne test_stz_abs_x_error_
+    ldx #1
+    stz $00,x
+    lda $00,x
+    cmp #0
+    bne test_stz_zp_x_error_
+    printstr m_stz_zp_x_success
+    load_registers
+    rts
+test_stz_zp_x_error_:
+    printstr m_stz_zp_x_error
+    load_registers
+    rts
+
+
 m_debug: string "DEBUG\n"
 m_phx_success: string "PHX pass\n"
 m_phx_error: string "PHX fail\n"
@@ -57,6 +136,14 @@ m_phy_success: string "PHY pass\n"
 m_phy_error: string "PHY fail\n"
 m_ply_success: string "PLY pass\n"
 m_ply_error: string "PLY fail\n"
+m_stz_abs_success: string "STZ abs pass\n"
+m_stz_abs_error: string "STZ abs fail\n"
+m_stz_zp_success: string "STZ zp pass\n"
+m_stz_zp_error: string "STZ zp fail\n"
+m_stz_abs_x_success: string "STZ abs,x pass\n"
+m_stz_abs_x_error: string "STZ abs,x fail\n"
+m_stz_zp_x_success: string "STZ zp,x pass\n"
+m_stz_zp_x_error: string "STZ zp,x fail\n"
 
 m_stack_success: string "Stack pass\n"
 m_stack_error: string "Stack fail\n"
@@ -74,6 +161,11 @@ reset:
 
     jsr test_phy
     jsr test_ply
+
+    jsr test_stz_abs
+    jsr test_stz_zp
+    jsr test_stz_abs_x
+    jsr test_stz_zp_x
 
     printstr m_finish
 
