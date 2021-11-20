@@ -8,6 +8,8 @@
 // Messages
 #define IO_HALT 0x01
 #define IO_HOOK 0xff
+#define IO_HOOK_FUNC 0xfe
+#define IO_HOOK_CALL 0xfd
 
 #define NOOP 0xea
 
@@ -31,6 +33,8 @@ const uint8_t WAITING = 0b00000100;
 uint8_t io_in = 0;          // NOLINT
 uint8_t io_out = 0;         // NOLINT
 uint8_t io_cmd = 0;         // NOLINT
+uint8_t hooked_call = 0;    // NOLINT
+uint8_t call_level = 0;     // NOLINT
 uint8_t serial_last = 0;    // NOLINT
 uint8_t serial = 0;         // NOLINT
 uint8_t serial_written = 0; // NOLINT
@@ -78,7 +82,10 @@ void write6502(uint16_t address, uint8_t value) {
     switch (io_cmd) {
     case IO_HOOK:
       debug_steps = io_out;
-      //fflush(stdout);
+      io_cmd = 0;
+      break;
+    case IO_HOOK_CALL:
+      hooked_call = 1;
       io_cmd = 0;
       break;
     case IO_HALT:
@@ -111,11 +118,20 @@ void write6502(uint16_t address, uint8_t value) {
   }
 }
 
+#define FLAG_CARRY 0x01
+#define FLAG_ZERO 0x02
+#define FLAG_INTERRUPT 0x04
+#define FLAG_DECIMAL 0x08
+#define FLAG_BREAK 0x10
+#define FLAG_CONSTANT 0x20
+#define FLAG_OVERFLOW 0x40
+#define FLAG_SIGN 0x80
+
 void debug_hook() {
-    printf(" [debug] A: $%02x, X: $%02x, Y: $%02x\n",
-        a, x, y
+    printf(" [debug] A: $%02x, X: $%02x, Y: $%02x, Z: %i, C: %i, $00: $%02x, $01: $%02x\n",
+        a, x, y, (status & FLAG_ZERO) > 0, (status & FLAG_CARRY) > 0, read6502(0), read6502(1)
     );
-    printf(" [debug] PC: $%04x, EA: $%04x ::: $%02x $%02x $%02x $%02x\n",
+    printf("         PC: $%04x, EA: $%04x ::: $%02x $%02x $%02x $%02x\n",
         pc, ea,
         read6502(pc), read6502(pc+1), read6502(pc+2), read6502(pc+3)
     );
@@ -126,6 +142,18 @@ void hook() {
   if (debug_steps > 0) {
     debug_steps--;
     debug_hook();
+  }
+  if (hooked_call) {
+    if (opcode == 0x20) { // jsr
+      call_level++;
+    } else if (opcode == 0x60) { // rts
+      call_level--;
+      if (call_level == 0)
+        hooked_call = 0;
+    }
+    if (call_level > 0) {
+      debug_hook();
+    }
   }
 }
 

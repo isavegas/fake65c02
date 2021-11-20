@@ -7,7 +7,7 @@
 ERROR_COUNT = $7fff
 
     macro err,msg
-        printstr \msg
+        print_str \msg
     endm
 
     macro test_ph,r
@@ -21,12 +21,12 @@ test_ph\r\():
             pla                         ; Pull top of stack to a
             cmp #$FF                    ; Compare a to known passing data
             bne test_ph\r\()_error_     ; Jump to fail state
-            printstr m_ph\r\()_success  ; Print pass message
+            print_str m_ph\r\()_success  ; Print pass message
             pla                         ; Pull failure guard from stack
             load_registers
             rts
 test_ph\r\()_error_:
-            printstr m_ph\r\()_error    ; Print failure message
+            err m_ph\r\()_error    ; Print failure message
             load_registers
             rts
     endm
@@ -40,12 +40,12 @@ test_pl\r\():
             pl\r                        ; Attempt to pull passing data from stack to \r
             cp\r\() #$FF                ; Compare \r to known passing data
             bne test_pl\r\()_error_     ; Jump to fail state
-            printstr m_pl\r\()_success  ; Print pass message
+            print_str m_pl\r\()_success  ; Print pass message
             load_registers
             rts
 test_pl\r\()_error_:
             pla                         ; Pull test data from stack, cleanup
-            printstr m_pl\r\()_error    ; Print failure message
+            err m_pl\r\()_error    ; Print failure message
             load_registers
             rts
     endm
@@ -64,11 +64,11 @@ test_stz_abs:
     lda $0000
     cmp #0
     bne test_stz_abs_error_
-    printstr m_stz_abs_success
+    print_str m_stz_abs_success
     load_registers
     rts
 test_stz_abs_error_:
-    printstr m_stz_abs_error
+    err m_stz_abs_error
     load_registers
     rts
 
@@ -80,11 +80,11 @@ test_stz_zp:
     lda $00
     cmp #0
     bne test_stz_zp_error_
-    printstr m_stz_zp_success
+    print_str m_stz_zp_success
     load_registers
     rts
 test_stz_zp_error_:
-    printstr m_stz_abs_error
+    err m_stz_abs_error
     load_registers
     rts
 
@@ -103,11 +103,11 @@ test_stz_abs_x:
     lda $0000,x
     cmp #0
     bne test_stz_abs_x_error_
-    printstr m_stz_abs_x_success
+    print_str m_stz_abs_x_success
     load_registers
     rts
 test_stz_abs_x_error_:
-    printstr m_stz_abs_x_error
+    err m_stz_abs_x_error
     load_registers
     rts
 
@@ -126,11 +126,11 @@ test_stz_zp_x:
     lda $00,x
     cmp #0
     bne test_stz_zp_x_error_
-    printstr m_stz_zp_x_success
+    print_str m_stz_zp_x_success
     load_registers
     rts
 test_stz_zp_x_error_:
-    printstr m_stz_zp_x_error
+    err m_stz_zp_x_error
     load_registers
     rts
 
@@ -145,11 +145,11 @@ test_bit_abs_x:
     bit %00000000
     bit $0000,x
     beq test_bit_abs_x_error_
-    printstr m_bit_abs_x_success
+    print_str m_bit_abs_x_success
     load_registers
     rts
 test_bit_abs_x_error_:
-    printstr m_bit_abs_x_error
+    err m_bit_abs_x_error
     load_registers
     rts
 
@@ -164,11 +164,11 @@ test_bit_zp_x:
     bit %00000000
     bit $00,x
     beq test_bit_zp_x_error_
-    printstr m_bit_zp_x_success
+    print_str m_bit_zp_x_success
     load_registers
     rts
 test_bit_zp_x_error_:
-    printstr m_bit_zp_x_error
+    err m_bit_zp_x_error
     load_registers
     rts
 
@@ -190,7 +190,7 @@ test_jmp_indirect_x_zero_success_:
     jmp ($0000,x)
     jmp test_jmp_indirect_x_error_
 test_jmp_indirect_x_offset_success_:
-    printstr m_jmp_indirect_x_success
+    print_str m_jmp_indirect_x_success
     load_registers
     rts
 test_jmp_indirect_x_error_:
@@ -205,19 +205,152 @@ test_bra_rel:
     load_registers
     rts
 test_bra_rel_success_:
-    printstr m_bra_rel_success
+    print_str m_bra_rel_success
+    load_registers
+    rts
+
+test_trb_abs:
+    save_registers
+
+    lda #$A6
+    sta $0000
+    lda #$33
+    trb $0000
+    beq test_trb_abs_error_  ; Zero flag should not be set
+    cmp #$33                ; A should not have changed
+    bne test_trb_abs_error_  ; Zero flag should be set
+    lda $0000
+    cmp #$84                ; $00 should be updated
+    bne test_trb_abs_error_  ; Zero flag should be set
+
+    lda #$A6
+    sta $0001
+    lda #$41
+    trb $0001
+    bne test_trb_abs_error_  ; Zero flag should be set
+    cmp #$41                ; A should not have changed
+    bne test_trb_abs_error_  ; Zero flag should be set
+    lda $0001
+    cmp #$A6                ; $00 should be updated
+    bne test_trb_abs_error_  ; Zero flag should be set
+
+    print_str m_trb_abs_success
+    load_registers
+    rts
+test_trb_abs_error_:
+    err m_trb_abs_error
+    load_registers
+    rts
+
+test_trb_zp:
+    save_registers
+
+    lda #$A6
+    sta $00
+    lda #$33
+    trb $00
+    beq test_trb_zp_error_  ; Zero flag should not be set
+    cmp #$33                ; A should not have changed
+    bne test_trb_zp_error_  ; Zero flag should be set
+    lda $00
+    cmp #$84                ; $00 should be updated
+    bne test_trb_zp_error_  ; Zero flag should be set
+
+    lda #$A6
+    sta $01
+    lda #$41
+    trb $01
+    bne test_trb_zp_error_  ; Zero flag should be set
+    cmp #$41                ; A should not have changed
+    bne test_trb_zp_error_  ; Zero flag should be set
+    lda $01
+    cmp #$A6                ; $00 should be updated
+    bne test_trb_zp_error_  ; Zero flag should be set
+
+    print_str m_trb_zp_success
+    load_registers
+    rts
+test_trb_zp_error_:
+    err m_trb_zp_error
+    load_registers
+    rts
+
+test_tsb_abs:
+    save_registers
+
+    lda #$A6
+    sta $0000
+    lda #$33
+    tsb $0000
+    beq test_tsb_abs_error_  ; Zero flag should not be set
+    cmp #$33                ; A should not have changed
+    bne test_tsb_abs_error_  ; Zero flag should be set
+    lda $0000
+    cmp #$B7                ; $00 should be updated
+    bne test_tsb_abs_error_  ; Zero flag should be set
+
+    lda #$A6
+    sta $0001
+    lda #$41
+    tsb $0001
+    bne test_tsb_abs_error_  ; Zero flag should be set
+    cmp #$41                ; A should not have changed
+    bne test_tsb_abs_error_  ; Zero flag should be set
+    lda $0001
+    cmp #$E7                ; $00 should be updated
+    bne test_tsb_abs_error_  ; Zero flag should be set
+
+    print_str m_tsb_abs_success
+    load_registers
+    rts
+test_tsb_abs_error_:
+    err m_tsb_abs_error
+    load_registers
+    rts
+
+test_tsb_zp:
+    save_registers
+
+    lda #$A6
+    sta $00
+    lda #$33
+    tsb $00
+    beq test_tsb_zp_error_  ; Zero flag should not be set
+    cmp #$33                ; A should not have changed
+    bne test_tsb_zp_error_  ; Zero flag should be set
+    lda $00
+    cmp #$B7                ; $00 should be updated
+    bne test_tsb_zp_error_  ; Zero flag should be set
+
+    lda #$A6
+    sta $01
+    lda #$41
+    tsb $01
+    bne test_tsb_zp_error_  ; Zero flag should be set
+    cmp #$41                ; A should not have changed
+    bne test_tsb_zp_error_  ; Zero flag should be set
+    lda $01
+    cmp #$E7                ; $00 should be updated
+    bne test_tsb_zp_error_  ; Zero flag should be set
+
+    print_str m_tsb_zp_success
+    load_registers
+    rts
+test_tsb_zp_error_:
+    err m_tsb_zp_error
     load_registers
     rts
 
 m_debug_message: string " => DEBUG BUILD\n"
 reset:
     ifdef DEBUG
-        printstr m_debug_message
+        print_str m_debug_message
     endif
+
     lda #0
     sta ERROR_COUNT
 
-    printstr m_start
+    print_str m_start
 
     jsr test_phx
     jsr test_plx
@@ -237,7 +370,13 @@ reset:
 
     jsr test_bra_rel
 
-    printstr m_finish
+    jsr test_trb_abs
+    jsr test_trb_zp
+
+    jsr test_tsb_abs
+    jsr test_tsb_zp
+
+    print_str m_finish
     halt 0
 
     org $fffc

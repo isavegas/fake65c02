@@ -376,6 +376,26 @@ static void and () {
   saveaccum(result);
 }
 
+static void trb() {
+  penaltyop = 1;
+  value = getvalue();
+  result = (~(uint16_t)a) & value;
+
+  zerocalc((uint16_t)a & value);
+
+  putvalue(result);
+}
+
+static void tsb() {
+  penaltyop = 1;
+  value = getvalue();
+  result = (uint16_t)a | value;
+
+  zerocalc((uint16_t)a & value);
+
+  putvalue(result);
+}
+
 static void asl() {
   value = getvalue();
   result = value << 1;
@@ -899,9 +919,11 @@ static void rra() {
 #endif
 
 static void (*addrtable[256])() = {
+// $1C :: absx -> abso
+// $14 :: zpx -> zp
     /*    |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |  A  |  B  |  C  |  D  |  E  |  F  |     */
     /* 0 */ imp,  indx, imp,  indx, zp,   zp,   zp,   zp,   imp,  imm,  acc,  imm,  abso, abso, abso, abso, /* 0 */
-    /* 1 */ rel,  indy, imp,  indy, zpx,  zpx,  zpx,  zpx,  imp,  absy, imp,  absy, absx, absx, absx, absx, /* 1 */
+    /* 1 */ rel,  indy, imp,  indy, zp,   zpx,  zpx,  zpx,  imp,  absy, imp,  absy, abso, absx, absx, absx, /* 1 */
     /* 2 */ abso, indx, imp,  indx, zp,   zp,   zp,   zp,   imp,  imm,  acc,  imm,  abso, abso, abso, abso, /* 2 */
     /* 3 */ rel,  indy, imp,  indy, zpx,  zpx,  zpx,  zpx,  imp,  absy, imp,  absy, absx, absx, absx, absx, /* 3 */
     /* 4 */ imp,  indx, imp,  indx, zp,   zp,   zp,   zp,   imp,  imm,  acc,  imm,  abso, abso, abso, abso, /* 4 */
@@ -920,8 +942,8 @@ static void (*addrtable[256])() = {
 
 static void (*optable[256])() = {
     /*    |  0 |  1 |  2 |  3 |  4 |  5 |  6 |  7 |  8 |  9 |  A |  B |  C |  D |  E |  F   |    */
-    /* 0 */ brk, ora, nop, slo, nop, ora, asl, slo, php, ora, asl, nop, nop, ora, asl, slo, /* 0 */
-    /* 1 */ bpl, ora, nop, slo, nop, ora, asl, slo, clc, ora, nop, slo, nop, ora, asl, slo, /* 1 */
+    /* 0 */ brk, ora, nop, slo, tsb, ora, asl, slo, php, ora, asl, nop, tsb, ora, asl, slo, /* 0 */
+    /* 1 */ bpl, ora, nop, slo, trb, ora, asl, slo, clc, ora, nop, slo, trb, ora, asl, slo, /* 1 */
     /* 2 */ jsr, and, nop, rla, bit, and, rol, rla, plp, and, rol, nop, bit, and, rol, rla, /* 2 */
     /* 3 */ bmi, and, nop, rla, bit, and, rol, rla, sec, and, nop, rla, bit, and, rol, rla, /* 3 */
     /* 4 */ rti, eor, nop, sre, nop, eor, lsr, sre, pha, eor, lsr, nop, jmp, eor, lsr, sre, /* 4 */

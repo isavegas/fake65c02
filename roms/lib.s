@@ -5,11 +5,9 @@ SERIAL = $ffff
 PRINT_PTR = $BA
 
 IO_HALT = $01
+IO_HOOK_CALL = $fd
+IO_HOOK_FUNC = $fe
 IO_HOOK = $ff
-
-print_char:
-    sta SERIAL
-    rts
 
 print:
     stx PRINT_PTR     ; Store lower byte of string address
@@ -31,6 +29,11 @@ incr_print_ptr_
 print_done_:
     rts               ; Return from subroutine
 
+    macro print_char,char
+        lda #\char
+        sta SERIAL
+    endm
+
     macro halt,exit_code
         lda #\exit_code
         sta IO_OUT
@@ -38,7 +41,7 @@ print_done_:
         sta IO_CMD
     endm
 
-    macro printstr,str
+    macro print_str,str
         save_registers
         ldx #<\str
         lda #>\str
@@ -71,7 +74,23 @@ print_done_:
         sta IO_CMD
         pla
     endm
+    macro debug_func
+        pha
+        lda #IO_HOOK_FUNC
+        sta IO_CMD
+        pla
+    endm
+    macro debug_call
+        pha
+        lda #IO_HOOK_CALL
+        sta IO_CMD
+        pla
+    endm
     else
     macro debug,n
+    endm
+    macro debug_func
+    endm
+    macro debug_call
     endm
     endif

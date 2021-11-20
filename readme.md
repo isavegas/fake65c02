@@ -76,10 +76,10 @@ Instruction   | OP        | Description
 - [X] `BIT abs,X`
 - [X] `JMP (abs,X)`
 - [X] `BRA`
-- [ ] `TRB addr`
-- [ ] `TRB ZP`
-- [ ] `TSB addr`
-- [ ] `TSB ZP`
+- [X] `TRB addr`
+- [X] `TRB ZP`
+- [X] `TSB addr`
+- [X] `TSB ZP`
 - [ ] `BBR ZP`
 - [ ] `BBS ZP`
 - [ ] `RMB ZP`
