@@ -3,6 +3,13 @@
     include ../lib.s
     include test_65c02_strings.s
 
+; TODO: Count errors using `err` macro
+ERROR_COUNT = $7fff
+
+    macro err,msg
+        printstr \msg
+    endm
+
     macro test_ph,r
 test_ph\r\():
             save_registers
@@ -177,27 +184,38 @@ test_jmp_indirect_x:
     sta $0003
     ldx #$0000
     jmp ($0000,x)
-    jmp halt
     jmp test_jmp_indirect_x_error_
 test_jmp_indirect_x_zero_success_:
     ldx #2
     jmp ($0000,x)
     jmp test_jmp_indirect_x_error_
 test_jmp_indirect_x_offset_success_:
-    ;jmp test_jmp_indirect_x_error_
     printstr m_jmp_indirect_x_success
     load_registers
     rts
 test_jmp_indirect_x_error_:
-    printstr m_jmp_indirect_x_error
+    err m_jmp_indirect_x_error
     load_registers
     rts
 
+test_bra_rel:
+    save_registers
+    bra test_bra_rel_success_
+    err m_bra_rel_error
+    load_registers
+    rts
+test_bra_rel_success_:
+    printstr m_bra_rel_success
+    load_registers
+    rts
 
+m_debug_message: string " => DEBUG BUILD\n"
 reset:
     ifdef DEBUG
-        printstr m_debug
+        printstr m_debug_message
     endif
+    lda #0
+    sta ERROR_COUNT
 
     printstr m_start
 
@@ -217,10 +235,10 @@ reset:
 
     jsr test_jmp_indirect_x
 
-    printstr m_finish
+    jsr test_bra_rel
 
-    lda #$00
-    jmp halt
+    printstr m_finish
+    halt 0
 
     org $fffc
     word reset

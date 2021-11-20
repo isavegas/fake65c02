@@ -1,5 +1,7 @@
 m_debug: string "DEBUG\n"
 
+m_exit_error: string "Error running tests\n"
+
 m_stack_success: string "Stack pass\n"
 m_stack_error: string "Stack fail\n"
 
@@ -30,3 +32,5 @@ m_bit_zp_x_success: string "BIT zp,x pass\n"
 m_bit_zp_x_error: string "BIT zp,x fail\n"
 m_jmp_indirect_x_success: string "JMP (abs,x) pass\n"
 m_jmp_indirect_x_error: string "JMP (abs,x) fail\n"
+m_bra_rel_success: string "BRA rel pass\n"
+m_bra_rel_error: string "BRA rel fail\n"

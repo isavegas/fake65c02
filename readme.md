@@ -75,7 +75,7 @@ Instruction   | OP        | Description
 - [X] `BIT ZP,X`
 - [X] `BIT abs,X`
 - [X] `JMP (abs,X)`
-- [ ] `BRA`
+- [X] `BRA`
 - [ ] `TRB addr`
 - [ ] `TRB ZP`
 - [ ] `TSB addr`

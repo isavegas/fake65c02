@@ -1,9 +1,10 @@
 IO_IN = $7fff
-IO_OUT = $8000
-HALT = $8001
+IO_CMD = $8000
+IO_OUT = $8001
 SERIAL = $ffff
 PRINT_PTR = $BA
 
+IO_HALT = $01
 IO_HOOK = $ff
 
 print_char:
@@ -30,8 +31,12 @@ incr_print_ptr_
 print_done_:
     rts               ; Return from subroutine
 
-halt:
-    sta HALT
+    macro halt,exit_code
+        lda #\exit_code
+        sta IO_OUT
+        lda #IO_HALT
+        sta IO_CMD
+    endm
 
     macro printstr,str
         save_registers
@@ -58,13 +63,15 @@ halt:
     endm
 
     ifdef DEBUG
-    macro debug
+    macro debug,n
         pha
-        lda #IO_HOOK
+        lda #\n
         sta IO_OUT
+        lda #IO_HOOK
+        sta IO_CMD
         pla
     endm
     else
-    macro debug
+    macro debug,n
     endm
     endif

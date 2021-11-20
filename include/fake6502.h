@@ -11,7 +11,7 @@ void nmi6502();
 void exec6502(uint32_t tickcount);
 void hookexternal(void *funcptr);
 
-extern uint16_t pc;
+extern uint16_t pc, ea;
 extern uint8_t sp, a, x, y, status;
 extern uint8_t opcode, oldstatus;
 

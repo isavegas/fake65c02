@@ -32,8 +32,7 @@ reset:
     lda #"\n"
     sta SERIAL
 
-    lda #$00
-    sta HALT
+    halt 0
 
     org $fffc
     word reset

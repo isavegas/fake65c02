@@ -2,10 +2,11 @@
 
 // Ports
 #define IO_IN 0x7fff
-#define IO_OUT 0x8000
-#define HALT 0x8001
+#define IO_CMD 0x8000
+#define IO_OUT 0x8001
 
 // Messages
+#define IO_HALT 0x01
 #define IO_HOOK 0xff
 
 #define NOOP 0xea
@@ -24,13 +25,17 @@ uint8_t ROM[ROM_SIZE]; // NOLINT
 
 uint8_t STATE = 0b00000000; // NOLINT
 const uint8_t HALTED = 0b00000001;
+const uint8_t STOPPED = 0b00000010;
+const uint8_t WAITING = 0b00000100;
 
 uint8_t io_in = 0;          // NOLINT
 uint8_t io_out = 0;         // NOLINT
+uint8_t io_cmd = 0;         // NOLINT
 uint8_t serial_last = 0;    // NOLINT
 uint8_t serial = 0;         // NOLINT
 uint8_t serial_written = 0; // NOLINT
 uint8_t exit_code = 0;      // NOLINT
+uint8_t debug_steps = 0;
 
 uint8_t read6502(uint16_t address) {
   if (address == IO_IN) {
@@ -68,9 +73,19 @@ void write6502(uint16_t address, uint8_t value) {
   case IO_OUT:
     io_out = value;
     break;
-  case HALT:
-    STATE |= HALTED;
-    exit_code = value;
+  case IO_CMD:
+    io_cmd = value;
+    switch (io_cmd) {
+    case IO_HOOK:
+      debug_steps = io_out;
+      //fflush(stdout);
+      io_cmd = 0;
+      break;
+    case IO_HALT:
+      STATE |= HALTED;
+      exit_code = io_out;
+      break;
+    }
     break;
   default:
     if (address >= RAM_LOCATION && address < RAM_LOCATION + RAM_SIZE) {
@@ -93,6 +108,24 @@ void write6502(uint16_t address, uint8_t value) {
 #endif
 #endif
     }
+  }
+}
+
+void debug_hook() {
+    printf(" [debug] A: $%02x, X: $%02x, Y: $%02x\n",
+        a, x, y
+    );
+    printf(" [debug] PC: $%04x, EA: $%04x ::: $%02x $%02x $%02x $%02x\n",
+        pc, ea,
+        read6502(pc), read6502(pc+1), read6502(pc+2), read6502(pc+3)
+    );
+    fflush(stdout);
+}
+
+void hook() {
+  if (debug_steps > 0) {
+    debug_steps--;
+    debug_hook();
   }
 }
 
@@ -125,11 +158,6 @@ int load_rom(char *path, unsigned int rom_size) {
   return 1;
 }
 
-void l() {
-  //  printf("Clock: %i, Instructions: %i, PC: $%04x, OP: $%02x\n",
-  //  clockticks6502, instructions, pc, opcode);
-}
-
 int main(int argc, char *argv[]) {
   initialize(ROM, ROM_SIZE);
   initialize(RAM, RAM_SIZE);
@@ -142,20 +170,11 @@ int main(int argc, char *argv[]) {
     //    read6502(0xfffc), read6502(0xfffd)); printf("$0000: $%02x, $0001:
     //    $%02x :: $8000: $%02x, $8001: $%02x\n", ROM[0x0000], ROM[0x0001],
     //    read6502(0x8000), read6502(0x8001));
-    l();
+    hookexternal(*hook);
     reset6502();
-    l();
+    int d = 0;
     while ((STATE & HALTED) == 0) {
       step6502();
-      switch (io_out) {
-      case IO_HOOK:
-        printf("PC: $%04x\n", pc);
-        fflush(stdout);
-        io_out = 0x00;
-        break;
-      default:
-        ;
-      }
     }
     if (serial != '\n' && (serial == 0 && serial_last != '\n') && serial_written == 1) {
       printf("\n");

@@ -33,8 +33,7 @@ reset:
     lda #>m_abc ; Upper byte
     jsr print   ; Jump to print subroutine
 
-    lda #$01
-    sta HALT ; Stack not operational
+    halt 0
 
     org $fffc
     word reset
