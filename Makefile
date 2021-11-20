@@ -40,10 +40,12 @@ $(OBJS): %.o: %.c
 %.c:
 	touch $@
 
+roms: ;
+
 subprojects: $(SUBPROJS)
 	$(foreach var,$(SUBPROJS),echo building $(var):;$(MAKE) -C $(var);)
 
-test: fake6502 ${ROMS}
+test: all subprojects
 	$(MAKE) -C roms test
 
 format:
@@ -56,5 +58,5 @@ tidy_all:
 	${CLANG_TIDY} ${TIDY_FLAGS} main.c fake6502.c -- ${CFLAGS}
 
 clean:
-	-rm -f fake6502 fake6502_debug *.o
+	-rm -f fake6502 fake65c02 *.o
 	$(MAKE) -C roms clean

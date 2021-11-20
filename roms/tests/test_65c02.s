@@ -126,6 +126,43 @@ test_stz_zp_x_error_:
     load_registers
     rts
 
+test_bit_abs_x:
+    save_registers
+    ldx #%00000000
+    stx $0000
+    ldx #%00101100
+    stx $0001
+    ldx #1
+    lda #%11000100
+    bit %00000000
+    bit $0000,x
+    beq test_bit_abs_x_error_
+    printstr m_bit_abs_x_success
+    load_registers
+    rts
+test_bit_abs_x_error_:
+    printstr m_bit_abs_x_error
+    load_registers
+    rts
+
+test_bit_zp_x:
+    save_registers
+    ldx #%00000000
+    stx $00
+    ldx #%00101100
+    stx $01
+    ldx #1
+    lda #%11000100
+    bit %00000000
+    bit $00,x
+    beq test_bit_zp_x_error_
+    printstr m_bit_zp_x_success
+    load_registers
+    rts
+test_bit_zp_x_error_:
+    printstr m_bit_zp_x_error
+    load_registers
+    rts
 
 m_debug: string "DEBUG\n"
 m_phx_success: string "PHX pass\n"
@@ -144,6 +181,10 @@ m_stz_abs_x_success: string "STZ abs,x pass\n"
 m_stz_abs_x_error: string "STZ abs,x fail\n"
 m_stz_zp_x_success: string "STZ zp,x pass\n"
 m_stz_zp_x_error: string "STZ zp,x fail\n"
+m_bit_abs_x_success: string "BIT abs,x pass\n"
+m_bit_abs_x_error: string "BIT abs,x fail\n"
+m_bit_zp_x_success: string "BIT zp,x pass\n"
+m_bit_zp_x_error: string "BIT zp,x fail\n"
 
 m_stack_success: string "Stack pass\n"
 m_stack_error: string "Stack fail\n"
@@ -166,6 +207,9 @@ reset:
     jsr test_stz_zp
     jsr test_stz_abs_x
     jsr test_stz_zp_x
+
+    jsr test_bit_abs_x
+    jsr test_bit_zp_x
 
     printstr m_finish
 

@@ -914,7 +914,7 @@ static void (*optable[256])() = {
     /* 0 */ brk, ora, nop, slo, nop, ora, asl, slo, php, ora, asl, nop, nop, ora, asl, slo, /* 0 */
     /* 1 */ bpl, ora, nop, slo, nop, ora, asl, slo, clc, ora, nop, slo, nop, ora, asl, slo, /* 1 */
     /* 2 */ jsr, and, nop, rla, bit, and, rol, rla, plp, and, rol, nop, bit, and, rol, rla, /* 2 */
-    /* 3 */ bmi, and, nop, rla, nop, and, rol, rla, sec, and, nop, rla, nop, and, rol, rla, /* 3 */
+    /* 3 */ bmi, and, nop, rla, bit, and, rol, rla, sec, and, nop, rla, bit, and, rol, rla, /* 3 */
     /* 4 */ rti, eor, nop, sre, nop, eor, lsr, sre, pha, eor, lsr, nop, jmp, eor, lsr, sre, /* 4 */
     /* 5 */ bvc, eor, nop, sre, nop, eor, lsr, sre, cli, eor, phy, sre, nop, eor, lsr, sre, /* 5 */
     /* 6 */ rts, adc, nop, rra, stz, adc, ror, rra, pla, adc, ror, nop, jmp, adc, ror, rra, /* 6 */

@@ -30,7 +30,7 @@ test_6502: ${TESTS}
 test_65c02: ${TESTS}
 	$(foreach var,$(TESTS),echo Running $(var):;../fake65c02 $(var);)
 
-test: test_6502 test_65c02 ;
+test: test_65c02 test_6502 ;
 
 clean:
 	-rm -f *.bin tests/*.bin examples/*.bin
