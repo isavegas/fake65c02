@@ -1,6 +1,12 @@
 fake6502
 fake65c02
+
 *.o
+
 /roms/*.bin
 /roms/tests/*.bin
 /roms/examples/*.bin
+
+/roms/*.lst
+/roms/tests/*.lst
+/roms/examples/*.lst

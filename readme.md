@@ -29,12 +29,14 @@ a table below for ease of access when working on my fake65c02.c
 
 Instruction   | OP        | Description
 --------------|-----------|-----------------------------------------------------
-`PHX`         | `$DA`     | push X onto the hardware stack, without disturbing A
-`PLX`         | `$FA`     | pull X  off the hardware stack, without disturbing A
-`PHY`         | `$5A`     | push Y onto the hardware stack, without disturbing A
-`PLY`         | `$7A`     | pull Y  off the hardware stack, without disturbing A
-`STZ ZP,X`    | `$74`     | At the ZP addr indicated by the operand plus X, store 00.
-`STZ abs,X`   | `$9E`     | At the 16|bit addr indicated by the operand plus X, store 00.
+`PHX`         | `$DA`     | push X onto the hardware stack, without disturbing A.
+`PLX`         | `$FA`     | pull X  off the hardware stack, without disturbing A.
+`PHY`         | `$5A`     | push Y onto the hardware stack, without disturbing A.
+`PLY`         | `$7A`     | pull Y  off the hardware stack, without disturbing A.
+`STZ abs`     | `$9C`     | At the 16 bit addr indicated by the operand, store zero.
+`STZ abs,X`   | `$9E`     | At the 16 bit addr indicated by the operand plus X, store zero.
+`STZ ZP`      | `$64`     | At the ZP addr indicated by the operand, store zero.
+`STZ ZP,X`    | `$74`     | At the ZP addr indicated by the operand plus X, store zero.
 `BIT ZP,X`    | `$34`     | (new addressing mode for the BIT instruction)
 `BIT abs,X`   | `$3C`     | (new addressing mode for the BIT instruction)
 `JMP (abs,X)` | `$7C`     | (new addressing mode for the JMP instruction)
@@ -48,10 +50,10 @@ Instruction   | OP        | Description
 
 Instruction   | OP        | Description
 --------------|-----------|-----------------------------------------------------
-`BBR ZP`      | `$0F-$7F` | Branch if specified Bit is Reset. ‾⌉ These are most useful
-`BBS ZP`      | `$8F-$FF` | Branch if specified Bit is Set.    | when I/O is in ZP.  They
-`RMB ZP`      | `$07-$77` | Reset specified Memory Bit.        | are on WDC & Rockwell but
-`SMB ZP`      | `$87-$F7` | Set specified Memory Bit.         _⌋ not GTE/CMD or Synertek.
+`BBR ZP`      | `$0F-$7F` | Branch if specified Bit is Reset.
+`BBS ZP`      | `$8F-$FF` | Branch if specified Bit is Set.
+`RMB ZP`      | `$07-$77` | Reset specified Memory Bit.
+`SMB ZP`      | `$87-$F7` | Set specified Memory Bit.
 
 
 ### Instructions added in the WDC variant of the 65c02
@@ -66,8 +68,10 @@ Instruction   | OP        | Description
 - [X] `PLX`
 - [X] `PHY`
 - [X] `PLY`
-- [ ] `STZ ZP,X`
-- [ ] `STZ abs,X`
+- [X] `STZ abs`
+- [X] `STZ ZP`
+- [X] `STZ abs,X`
+- [X] `STZ ZP,X`
 - [ ] `BIT ZP,X`
 - [ ] `BIT abs,X`
 - [ ] `JMP (abs,X)`

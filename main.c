@@ -21,10 +21,12 @@ uint8_t ROM[ROM_SIZE]; // NOLINT
 uint8_t STATE = 0b00000000; // NOLINT
 const uint8_t HALTED = 0b00000001;
 
-uint8_t io_in = 0;     // NOLINT
-uint8_t io_out = 0;    // NOLINT
-uint8_t serial = 0;    // NOLINT
-uint8_t exit_code = 0; // NOLINT
+uint8_t io_in = 0;          // NOLINT
+uint8_t io_out = 0;         // NOLINT
+uint8_t serial_last = 0;    // NOLINT
+uint8_t serial = 0;         // NOLINT
+uint8_t serial_written = 0; // NOLINT
+uint8_t exit_code = 0;      // NOLINT
 
 uint8_t read6502(uint16_t address) {
   if (address == IO_IN) {
@@ -50,7 +52,9 @@ uint8_t read6502(uint16_t address) {
 void write6502(uint16_t address, uint8_t value) {
   switch (address) {
   case SERIAL_OUT:
+    if (!serial_written) serial_written = 1;
     printf("%c", value);
+    serial_last = serial;
     serial = value;
     break;
   case IO_OUT:
@@ -137,7 +141,7 @@ int main(int argc, char *argv[]) {
       step6502();
       l();
     }
-    if (serial != '\n') {
+    if (serial != '\n' && (serial == 0 && serial_last != '\n') && serial_written == 1) {
       printf("\n");
     }
     if (exit_code > 0) {
