@@ -62,10 +62,10 @@ Instruction   | OP        | Description
 `WAI`         | $CB       | WAIt.  It's like STP, but any interrupt will resume execution.
 
 ### TODO
-- [ ] `PHX`
-- [ ] `PLX`
-- [ ] `PHY`
-- [ ] `PLY`
+- [X] `PHX`
+- [X] `PLX`
+- [X] `PHY`
+- [X] `PLY`
 - [ ] `STZ ZP,X`
 - [ ] `STZ abs,X`
 - [ ] `BIT ZP,X`
