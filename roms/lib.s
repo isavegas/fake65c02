@@ -4,29 +4,6 @@ HALT = $8001
 SERIAL = $ffff
 PRINT_PTR = $BA
 
-;init_mem:
-;    pha         ; a -> stack
-;    txa         ; x -> a
-;    pha         ; a -> stack
-;    tya         ; y -> a
-;    pha         ; a -> stack
-;    ldy #$00
-;    ldx #$00
-;set_io_:
-;    stx IO_IN,y ; x -> $BC+x
-;    iny
-;    tya
-;    cmp #$03
-;    beq set_io_done_
-;    jmp set_io_
-;set_io_done_:
-;    pla         ; stack -> a
-;    tay         ; a -> y
-;    pla         ; stack -> a
-;    tax         ; a -> x
-;    pla         ; stack -> a
-;    rts
-
 print_char:
     sta SERIAL
     rts
@@ -53,3 +30,27 @@ print_done_:
 
 halt:
     sta HALT
+
+    macro printstr,str
+        save_registers
+        ldx #<\str
+        lda #>\str
+        jsr print
+        load_registers
+    endm
+
+    macro save_registers
+        pha
+        txa
+        pha
+        tya
+        pha
+    endm
+
+    macro load_registers
+        pla
+        tay
+        pla
+        tax
+        pla
+    endm

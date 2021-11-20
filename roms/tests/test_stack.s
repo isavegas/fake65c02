@@ -1,4 +1,4 @@
-    .org $8000
+    org $8000
 
     include ../lib.s
 
@@ -17,20 +17,25 @@ s_print:
     sta SERIAL
 
     lda #$00
-    jmp halt
+    rts
 
-m_abc: .string "abc\n"
+m_abc: string "abc\n"
+m_def: string "def\n"
 
 reset:
+    jsr s_print ; Check if stack works
+
     ldx #<m_abc ; Lower byte
     lda #>m_abc ; Upper byte
     jsr print   ; Jump to print subroutine
 
-    jsr s_print ; Check if stack works
+    ldx #<m_abc ; Lower byte
+    lda #>m_abc ; Upper byte
+    jsr print   ; Jump to print subroutine
 
     lda #$01
     sta HALT ; Stack not operational
 
-    .org $fffc
-    .word reset
-    .word $0000
+    org $fffc
+    word reset
+    word $0000

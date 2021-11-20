@@ -1,21 +1,23 @@
 SHELL= /bin/sh
 
 ASM ?= vasm6502_oldstyle
-ASMFLAGS ?= -Fbin -esc -dotdir -c02
-CPU ?= 65c02
+ASMFLAGS ?= -Fbin -esc -c02 -quiet -chklabels
 
 TESTS = tests/test_stack.bin tests/test_65c02.bin
 EXAMPLES = examples/hello_world.bin
 
-.PHONY: all test clean examples
+.PHONY: all test clean examples test_6502 test_65c02
 
 all: examples $(TESTS)
 
-$(TESTS): %.bin: %.s lib.s
-	${ASM} ${ASMFLAGS} -o $@ $<
+$(TESTS): %.bin: %.s %.lst lib.s
+	${ASM} ${ASMFLAGS} -o $@ -L $(word 2, $^) $<
 
-$(EXAMPLES): %.bin: %.s lib.s
-	${ASM} ${ASMFLAGS} -o $@ $<
+$(EXAMPLES): %.bin: %.s %.lst lib.s
+	${ASM} ${ASMFLAGS} -o $@ -L $(word 2, $^) $<
+
+%.lst:
+	touch $@
 
 %.s:
 	touch $@
@@ -23,10 +25,10 @@ $(EXAMPLES): %.bin: %.s lib.s
 examples: $(EXAMPLES) ;
 
 test_6502: ${TESTS}
-	$(foreach var,$(TESTS),echo running $(var):;../fake6502 $(var);)
+	$(foreach var,$(TESTS),echo Running $(var):;../fake6502 $(var);)
 
 test_65c02: ${TESTS}
-	$(foreach var,$(TESTS),echo running $(var):;../fake65c02 $(var);)
+	$(foreach var,$(TESTS),echo Running $(var):;../fake65c02 $(var);)
 
 test: test_6502 test_65c02 ;
 

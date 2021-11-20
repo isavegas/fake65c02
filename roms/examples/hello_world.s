@@ -1,4 +1,4 @@
-    .org $8000
+    org $8000
 
     include ../lib.s
 
@@ -35,6 +35,6 @@ reset:
     lda #$00
     sta HALT
 
-    .org $fffc
-    .word reset
-    .word $0000
+    org $fffc
+    word reset
+    word $0000
