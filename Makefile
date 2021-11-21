@@ -13,7 +13,6 @@ CLANG_TIDY ?= clang-tidy
 TIDY_FLAGS ?= -checks='*'
 CLANG_FORMAT ?= clang-format
 FORMAT_FLAGS ?=
-LIBS ?=
 
 ifdef FIX
 	TIDY_FLAGS += -fix-errors
@@ -27,19 +26,29 @@ endif
 
 CFLAGS += -D WRITABLE_VECTORS
 CFLAGS += -D UNDOCUMENTED
+CFLAGS += -fPIC
 
 OBJS= main.o fake6502.o fake65c02.o
 SUBPROJS= roms
 
+OUT_BINS= fake6502 fake65c02
+OUT_LIBS= fake6502.so fake65c02.so
+
 .PHONY: all $(SUBPROJS)
 
-all: fake6502 fake65c02
+all: $(OUT_BINS) $(OUT_LIBS)
 
 fake6502: main.o fake6502.o
-	${CC} ${CFLAGS} ${INCLUDES} ${LDFLAGS} -o $@ $^ ${LIBS}
+	${CC} ${CFLAGS} ${INCLUDES} ${LDFLAGS} -o $@ $^
 
 fake65c02: main.o fake65c02.o
-	${CC} ${CFLAGS} ${INCLUDES} ${LDFLAGS} -o $@ $^ ${LIBS}
+	${CC} ${CFLAGS} ${INCLUDES} ${LDFLAGS} -o $@ $^
+
+fake6502.so: fake6502.o
+	#${CC} ${CFLAGS} -shared ${INCLUDES} ${LDFLAGS} -o $@ $^
+
+fake65c02.so: fake65c02.o
+	${CC} ${CFLAGS} -shared ${INCLUDES} ${LDFLAGS} -o $@ $^
 
 $(OBJS): %.o: %.c
 

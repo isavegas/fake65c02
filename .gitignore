@@ -1,5 +1,6 @@
 fake6502
 fake65c02
+*.so
 
 *.o
 
