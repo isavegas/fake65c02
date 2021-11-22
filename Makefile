@@ -36,7 +36,7 @@ OUT_LIBS = fake65c02.so
 
 .PHONY: all ${SUBPROJS}
 
-all: ${OUT_BINS} ${OUT_LIBS}
+all: ${OUT_BINS} ${OUT_LIBS} ${SUBPROJS}
 
 fake65c02: main.o fake65c02.o
 	${CC} ${CFLAGS} ${INCLUDES} ${LDFLAGS} -o $@ $^
@@ -47,7 +47,7 @@ fake65c02.so: fake65c02.o
 # We need to prevent this from catching other targets
 ${filter %.o,${OBJS}}: %.o: %.c
 
-${SUBPROJS}: %
+${SUBPROJS}:
 	${MAKE} -C $@
 
 test: all roms
