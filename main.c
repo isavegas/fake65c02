@@ -1,5 +1,7 @@
 #include "include/main.h"
 
+#define MIN(a, b) ((a) < (b)) ? (a) : (b)
+
 // Ports
 #define IO_IN 0x7fff
 #define IO_CMD 0x8000
@@ -11,106 +13,120 @@
 #define IO_HOOK_FUNC 0xfe
 #define IO_HOOK_CALL 0xfd
 
-#define NOOP 0xea
+// Opcodes
+#define OP_NOOP 0xea
+#define OP_JSR 0x20
+#define OP_RTS 0x60
 
-#define SERIAL_OUT 0xffff
+#define SERIAL_OUT 0x8002
 
 #define ADDRESS_SPACE 65536
 
 #define RAM_SIZE 0x8000
 const uint16_t RAM_LOCATION = 0x0000;
-uint8_t RAM[RAM_SIZE]; // NOLINT
 
 #define ROM_SIZE 0x8000
 const uint16_t ROM_LOCATION = 0x8000;
-uint8_t ROM[ROM_SIZE]; // NOLINT
 
-uint8_t STATE = 0b00000000; // NOLINT
-const uint8_t HALTED = 0b00000001;
+#define VECTORS_LOCATION 0xfffc
+
+#define ALIGNMENT 128
+
+const uint8_t HALTED =  0b00000001;
 const uint8_t STOPPED = 0b00000010;
 const uint8_t WAITING = 0b00000100;
 
-uint8_t io_in = 0;          // NOLINT
-uint8_t io_out = 0;         // NOLINT
-uint8_t io_cmd = 0;         // NOLINT
-uint8_t hooked_call = 0;    // NOLINT
-uint8_t call_level = 0;     // NOLINT
-uint8_t serial_last = 0;    // NOLINT
-uint8_t serial = 0;         // NOLINT
-uint8_t serial_written = 0; // NOLINT
-uint8_t exit_code = 0;      // NOLINT
-uint8_t debug_steps = 0;
+typedef struct machine *machine_t;
+struct machine {
+  fake6502_t *context;
+  uint8_t state;
 
-uint8_t read6502(uint16_t address) {
+  uint8_t io_in;
+  uint8_t io_out;
+  uint8_t io_cmd;
+  uint8_t hooked_call;
+  uint8_t call_level;
+  uint8_t serial_last;
+  uint8_t serial;
+  uint8_t serial_written;
+  uint8_t exit_code;
+  uint8_t debug_steps;
+
+  uint8_t ram[RAM_SIZE];
+  uint8_t rom[ROM_SIZE];
+} __attribute__((aligned(ALIGNMENT))) __attribute__((packed));
+
+uint8_t read_memory(fake6502_t *context, uint16_t address) {
+  machine_t machine = (machine_t)context->m;
+  uint8_t *ram = machine->ram;
+  uint8_t *rom = machine->rom;
   if (address == IO_IN) {
-    return io_in;
+    return machine->io_in;
   }
   if (address >= RAM_LOCATION && address < RAM_LOCATION + RAM_SIZE) {
-    /*
-    unsigned int addr = address - RAM_LOCATION;
-    printf("read ram $%04x -> $%04x :: $%02x\n", address, addr, RAM[addr]);
-    */
-    return RAM[(unsigned int)(address - RAM_LOCATION)];
+    return ram[(unsigned int)(address - RAM_LOCATION)];
   }
   if (address >= ROM_LOCATION && address < ROM_LOCATION + ROM_SIZE) {
-    /*
-    unsigned int addr = address - ROM_LOCATION;
-    printf("read rom $%04x -> $%04x :: $%02x\n", address, addr, ROM[addr]);
-    */
-    return ROM[(unsigned int)(address - ROM_LOCATION)];
+    return rom[(unsigned int)(address - ROM_LOCATION)];
   }
-  return NOOP;
+  return OP_NOOP;
 }
 
-void write6502(uint16_t address, uint8_t value) {
+void write_memory(fake6502_t *context, uint16_t address, uint8_t value) {
+  machine_t machine = (machine_t)context->m;
+  uint8_t *ram = machine->ram;
+  uint8_t *rom = machine->rom;
+
   switch (address) {
   case SERIAL_OUT:
-    if (!serial_written) serial_written = 1;
+    if (!machine->serial_written) {
+      machine->serial_written = 1;
+    }
     printf("%c", value);
 #ifdef DEBUG
-    if (value == '\n' || value == '\0') // Only flush on \n in release build
+    fflush(stdout); // Flush every byte in debug build
+#else
+    if (value == '\n' || value == '\0') { // Only flush on \n in release build
+      fflush(stdout);
+    }
 #endif
-        fflush(stdout); // Flush every byte in debug build
-    serial_last = serial;
-    serial = value;
+    machine->serial_last = machine->serial;
+    machine->serial = value;
     break;
   case IO_OUT:
-    io_out = value;
+    machine->io_out = value;
     break;
   case IO_CMD:
-    io_cmd = value;
-    switch (io_cmd) {
+    machine->io_cmd = value;
+    switch (machine->io_cmd) {
     case IO_HOOK:
-      debug_steps = io_out;
-      io_cmd = 0;
+      machine->debug_steps = machine->io_out;
+      machine->io_cmd = 0;
       break;
     case IO_HOOK_CALL:
-      hooked_call = 1;
-      io_cmd = 0;
+      machine->hooked_call = 1;
+      machine->io_cmd = 0;
       break;
     case IO_HALT:
-      STATE |= HALTED;
-      exit_code = io_out;
+      machine->state |= HALTED;
+      machine->exit_code = machine->io_out;
       break;
     }
     break;
   default:
     if (address >= RAM_LOCATION && address < RAM_LOCATION + RAM_SIZE) {
-      // printf("write $%04x -> $%04x\n", address, (unsigned int)(address -
-      // RAM_LOCATION));
-      RAM[(unsigned int)(address - RAM_LOCATION)] = value;
+      ram[(unsigned int)(address - RAM_LOCATION)] = value;
     }
     if (address >= ROM_LOCATION && address < ROM_LOCATION + ROM_SIZE) {
       unsigned int addr = (unsigned int)(address - ROM_LOCATION);
 #ifdef WRITABLE_ROM
-      // printf("write $%04x -> $%04x\n", address, (unsigned int)(address -
-      // ROM_LOCATION));
-      ROM[addr] = value;
+      rom[addr] = value;
 #else
 #ifdef WRITABLE_VECTORS
       // Most of ROM is not writable, but we allow vectors to be written
-      if (addr >= 0xfffc) {
-        ROM[addr] = value;
+      // to allow direct redefinition of interrupt handler pointers.
+      if (addr >= VECTORS_LOCATION) {
+        rom[addr] = value;
       }
 #endif
 #endif
@@ -118,101 +134,103 @@ void write6502(uint16_t address, uint8_t value) {
   }
 }
 
-#define FLAG_CARRY 0x01
-#define FLAG_ZERO 0x02
-#define FLAG_INTERRUPT 0x04
-#define FLAG_DECIMAL 0x08
-#define FLAG_BREAK 0x10
-#define FLAG_CONSTANT 0x20
-#define FLAG_OVERFLOW 0x40
-#define FLAG_SIGN 0x80
+#define FLAG_CARRY 0x01U
+#define FLAG_ZERO 0x02U
+#define FLAG_INTERRUPT 0x04U
+#define FLAG_DECIMAL 0x08U
+#define FLAG_BREAK 0x10U
+#define FLAG_CONSTANT 0x20U
+#define FLAG_OVERFLOW 0x40U
+#define FLAG_SIGN 0x80U
 
-void debug_hook() {
-    printf(" [debug] A: $%02x, X: $%02x, Y: $%02x, Z: %i, C: %i, $00: $%02x, $01: $%02x\n",
-        a, x, y, (status & FLAG_ZERO) > 0, (status & FLAG_CARRY) > 0, read6502(0), read6502(1)
-    );
-    printf("         PC: $%04x, EA: $%04x ::: $%02x $%02x $%02x $%02x\n",
-        pc, ea,
-        read6502(pc), read6502(pc+1), read6502(pc+2), read6502(pc+3)
-    );
-    fflush(stdout);
+void debug_hook(fake6502_t *context) {
+  printf(" [debug] A: $%02x, X: $%02x, Y: $%02x, Z: %i, C: %i\n", context->a,
+         context->x, context->y, (context->status & FLAG_ZERO) > 0U,
+         (context->status & FLAG_CARRY) > 0);
+  printf("         PC: $%04x, EA: $%04x ::: $%02x $%02x $%02x $%02x\n",
+         context->pc, context->ea, read_memory(context, context->pc),
+         read_memory(context, context->pc + 1),
+         read_memory(context, context->pc + 2),
+         read_memory(context, context->pc + 3));
+  fflush(stdout);
 }
 
-void hook() {
-  if (debug_steps > 0) {
-    debug_steps--;
-    debug_hook();
+void hook(fake6502_t *context) {
+  machine_t machine = (machine_t)context->m;
+  if (machine->debug_steps > 0) {
+    machine->debug_steps--;
+    debug_hook(context);
   }
-  if (hooked_call) {
-    if (opcode == 0x20) { // jsr
-      call_level++;
-    } else if (opcode == 0x60) { // rts
-      call_level--;
-      if (call_level == 0)
-        hooked_call = 0;
+  if (machine->hooked_call) {
+    if (context->opcode == OP_JSR) {
+      machine->call_level++;
+    } else if (context->opcode == OP_RTS) {
+      machine->call_level--;
+      if (machine->call_level == 0) {
+        machine->hooked_call = 0;
+      }
     }
-    if (call_level > 0) {
-      debug_hook();
+    if (machine->call_level > 0) {
+      debug_hook(context);
     }
   }
 }
 
-// Fill with noop
-void initialize(uint8_t *bytes, int size) {
-  for (int i = 0; i < size; i++) {
-    bytes[i] = NOOP; // NOLINT
-  }
-}
-
-const int BUFFER_SIZE = 4096;
-int load_rom(char *path, unsigned int rom_size) {
-  FILE *fp = fopen(path, "re");
+const int BUFFER_SIZE = 4 * 1024;
+size_t load_bank(uint8_t *bank, char *path, unsigned int bank_size) {
+  FILE *fp = fopen(path, "rbe");
   if (fp == NULL) {
     return 0;
   }
-  unsigned char buffer[BUFFER_SIZE];
-  unsigned int p = 0;
-  size_t size = 0;
-  while ((size = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
-    for (int i = 0; i < size; i++) {
-      if (p < rom_size) {
-        ROM[p] = buffer[i];
-        p++;
-      } else {
-        return 1;
-      }
+
+  size_t i = 0;
+  for (size_t chunk = 1; chunk > 0; i += chunk) {
+    chunk = fread(&bank[i], sizeof(char), MIN(bank_size - i, BUFFER_SIZE), fp);
+    if (chunk < 0) { // error
+      return 0;
     }
   }
-  return 1;
+
+  // return how many bytes we read so caller can double-check
+  return i;
 }
 
 int main(int argc, char *argv[]) {
-  initialize(ROM, ROM_SIZE);
-  initialize(RAM, RAM_SIZE);
   if (argc < 2) {
     printf("Please supply a rom\n");
     return 1;
   }
-  if (load_rom(argv[1], ROM_SIZE)) {
-    //    printf("$%02x, $%02x :: $%02x, $%02x\n", ROM[0x7ffc], ROM[0x7ffd],
-    //    read6502(0xfffc), read6502(0xfffd)); printf("$0000: $%02x, $0001:
-    //    $%02x :: $8000: $%02x, $8001: $%02x\n", ROM[0x0000], ROM[0x0001],
-    //    read6502(0x8000), read6502(0x8001));
-    hookexternal(*hook);
-    reset6502();
-    int d = 0;
-    while ((STATE & HALTED) == 0) {
-      step6502();
+  int return_code = 0;
+  for (int i = 1; i < argc; i++) {
+    char *file_name = argv[i];
+    printf("Running %s\n", file_name);
+    machine_t m = calloc(1, sizeof(struct machine));
+    if (load_bank(m->rom, file_name, ROM_SIZE)) {
+      m->context = new_fake6502(m);
+      m->context->read = read_memory;
+      m->context->write = write_memory;
+      m->context->hook = hook;
+      reset6502(m->context);
+      while ((m->state & HALTED) == 0) {
+        step6502(m->context);
+      }
+      if (m->serial_written == 1 && m->serial != '\n' &&
+          (m->serial == 0 && m->serial_last != '\n')) {
+        printf("\n");
+        fflush(stdout);
+      }
+      if (m->exit_code > 0) {
+        printf("Exited with code: %i\n", m->exit_code);
+      }
+      return_code += m->exit_code;
+      printf("Finished running %s\n", argv[i]);
+    } else {
+      printf("Unable to read %s\n", argv[i]);
+      return_code += 1;
     }
-    if (serial != '\n' && (serial == 0 && serial_last != '\n') && serial_written == 1) {
-      printf("\n");
-      fflush(stdout);
-    }
-    if (exit_code > 0) {
-      printf("Exited with code: %i\n", exit_code);
-    }
-    return exit_code;
+    free_fake6502(m->context);
+    free(m);
   }
-  printf("Unable to read rom\n");
-  return 1;
+
+  return return_code;
 }

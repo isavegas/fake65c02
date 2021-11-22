@@ -1,37 +1,9 @@
     org $8000
+    include ../lib.s ; Include some utility macros and subroutines
 
-    include ../lib.s
-
+message: string "Hello world!\n"
 reset:
-    lda #"H"
-    sta SERIAL
-    lda #"e"
-    sta SERIAL
-    lda #"l"
-    sta SERIAL
-    lda #"l"
-    sta SERIAL
-    lda #"o"
-    sta SERIAL
-    lda #","
-    sta SERIAL
-    lda #" "
-    sta SERIAL
-    lda #"w"
-    sta SERIAL
-    lda #"o"
-    sta SERIAL
-    lda #"r"
-    sta SERIAL
-    lda #"l"
-    sta SERIAL
-    lda #"d"
-    sta SERIAL
-    lda #"!"
-    sta SERIAL
-    lda #"\n"
-    sta SERIAL
-
+    print_str message
     halt 0
 
     org $fffc

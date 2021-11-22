@@ -29,13 +29,8 @@ $(EXAMPLES): %.bin: %.s %.lst lib.s
 
 examples: $(EXAMPLES) ;
 
-test_6502: ${TESTS}
-	$(foreach var,$(TESTS),echo Running $(var):;../fake6502 $(var);)
-
-test_65c02: ${TESTS}
+test: ${TESTS}
 	$(foreach var,$(TESTS),echo Running $(var):;../fake65c02 $(var);)
-
-test: test_65c02 test_6502 ;
 
 clean:
 	-rm -f *.bin tests/*.bin examples/*.bin

@@ -1,7 +1,7 @@
 IO_IN = $7fff
 IO_CMD = $8000
 IO_OUT = $8001
-SERIAL = $ffff
+SERIAL = $8002
 PRINT_PTR = $BA
 
 IO_HALT = $01

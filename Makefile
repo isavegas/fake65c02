@@ -28,43 +28,33 @@ CFLAGS += -D WRITABLE_VECTORS
 CFLAGS += -D UNDOCUMENTED
 CFLAGS += -fPIC
 
-OBJS= main.o fake6502.o fake65c02.o
-SUBPROJS= roms
+OBJS = main.o fake65c02.o
+SUBPROJS = roms
 
-OUT_BINS= fake6502 fake65c02
-OUT_LIBS= fake6502.so fake65c02.so
+OUT_BINS = fake65c02
+OUT_LIBS = fake65c02.so
 
-.PHONY: all $(SUBPROJS)
+.PHONY: all ${SUBPROJS}
 
-all: $(OUT_BINS) $(OUT_LIBS)
-
-fake6502: main.o fake6502.o
-	${CC} ${CFLAGS} ${INCLUDES} ${LDFLAGS} -o $@ $^
+all: ${OUT_BINS} ${OUT_LIBS}
 
 fake65c02: main.o fake65c02.o
 	${CC} ${CFLAGS} ${INCLUDES} ${LDFLAGS} -o $@ $^
 
-fake6502.so: fake6502.o
-	#${CC} ${CFLAGS} -shared ${INCLUDES} ${LDFLAGS} -o $@ $^
-
 fake65c02.so: fake65c02.o
 	${CC} ${CFLAGS} -shared ${INCLUDES} ${LDFLAGS} -o $@ $^
 
-$(OBJS): %.o: %.c
+# We need to prevent this from catching other targets
+${filter %.o,${OBJS}}: %.o: %.c
 
-%.c:
-	touch $@
+${SUBPROJS}: %
+	${MAKE} -C $@
 
-roms: ;
-
-subprojects: $(SUBPROJS)
-	$(foreach var,$(SUBPROJS),echo building $(var):;$(MAKE) -C $(var);)
-
-test: all subprojects
-	$(MAKE) -C roms test
+test: all roms
+	${MAKE} -C roms test
 
 format:
-	${CLANG_FORMAT} --style=llvm -i *.c
+	${CLANG_FORMAT} --style=llvm -i main.c
 
 tidy:
 	${CLANG_TIDY} ${TIDY_FLAGS} main.c -- ${CFLAGS}
@@ -73,5 +63,4 @@ tidy_all:
 	${CLANG_TIDY} ${TIDY_FLAGS} main.c fake6502.c -- ${CFLAGS}
 
 clean:
-	-rm -f fake6502 fake65c02 *.o
-	$(MAKE) -C roms clean
+	-rm -f ${OUT_BINS} ${OUT_LIBS} *.o

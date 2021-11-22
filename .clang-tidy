@@ -7,14 +7,16 @@ WarningsAsErrors: |
 HeaderFilterRegex: '*'
 FormatStyle: file
 
-#CheckOptions:
-#  - key:             modernize-use-override.AllowOverrideAndFinal
-#    value:           'true'
-#  - key:             modernize-use-override.IgnoreDestructors
-#    value:           'true'
-#  - key:             performance-for-range-copy.WarnOnAllAutoCopies
-#    value:           'true'
-#  - key:             cppcoreguidelines-narrowing-conversions.WarnOnEquivalentBitWidth
-#    value:           'false'
-#  - key:             readability-implicit-bool-conversion.AllowPointerConditions
-#    value:           'true'
+CheckOptions:
+  - key:             modernize-use-override.AllowOverrideAndFinal
+    value:           'true'
+  - key:             modernize-use-override.IgnoreDestructors
+    value:           'true'
+  - key:             performance-for-range-copy.WarnOnAllAutoCopies
+    value:           'true'
+  - key:             cppcoreguidelines-narrowing-conversions.WarnOnEquivalentBitWidth
+    value:           'false'
+  - key:             readability-implicit-bool-conversion.AllowPointerConditions
+    value:           'true'
+  - key:             portability-restrict-system-includes
+    value:           -*,stdio.h
