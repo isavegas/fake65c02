@@ -2,7 +2,7 @@ SHELL= /bin/sh
 
 ASM ?= vasm6502_oldstyle
 ASMFLAGS ?= -Fbin -esc -dotdir
-CC ?= clang
+CC = clang
 CFLAGS ?= -march=native -Werror=implicit-function-declaration -D WRITABLE_VECTORS -D UNDOCUMENTED -fPIC
 INCLUDES +=
 RELEASE_CFLAGS ?= -O2 -flto=thin
@@ -12,7 +12,7 @@ LDFLAGS ?= -fuse-ld=lld -flto=thin
 CLANG_TIDY ?= clang-tidy
 TIDY_FLAGS ?= -checks='*'
 CLANG_FORMAT ?= clang-format
-FORMAT_FLAGS ?=
+FORMAT_FLAGS ?= --style=llvm
 
 ifdef FIX
 	TIDY_FLAGS += -fix-errors
@@ -50,13 +50,13 @@ test: all roms
 	${MAKE} -C roms test
 
 format:
-	${CLANG_FORMAT} --style=llvm -i main.c
+	${CLANG_FORMAT} ${FORMAT_FLAGS} -i main.c
 
 tidy:
 	${CLANG_TIDY} ${TIDY_FLAGS} main.c -- ${CFLAGS}
 
 tidy_all:
-	${CLANG_TIDY} ${TIDY_FLAGS} main.c fake6502.c -- ${CFLAGS}
+	${CLANG_TIDY} ${TIDY_FLAGS} main.c fake65c02.c -- ${CFLAGS}
 
 clean:
 	-rm -f ${OUT_BINS} ${OUT_LIBS} *.o
