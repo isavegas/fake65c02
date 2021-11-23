@@ -1,10 +1,7 @@
 SHELL= /bin/sh
 
-ASM ?= vasm6502_oldstyle
-ASMFLAGS ?= -Fbin -esc -dotdir
 CC = clang
 CFLAGS ?= -march=native -Werror=implicit-function-declaration -D WRITABLE_VECTORS -D UNDOCUMENTED -fPIC
-INCLUDES +=
 RELEASE_CFLAGS ?= -O2 -flto=thin
 export DEBUG ?=
 DEBUG_CFLAGS ?= -g -O0 -D DEBUG
@@ -35,13 +32,14 @@ OUT_LIBS = libfake65c02.so
 all: ${OUT_BINS} ${OUT_LIBS} ${SUBPROJS}
 
 fake65c02: main.o fake65c02.o
-	${CC} ${CFLAGS} ${INCLUDES} ${LDFLAGS} -o $@ $^
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $^
 
 libfake65c02.so: fake65c02.o
-	${CC} ${CFLAGS} -shared ${INCLUDES} ${LDFLAGS} -o $@ $^
+	${CC} ${CFLAGS} -shared ${LDFLAGS} -o $@ $^
 
 # We need to prevent this from catching other targets
 ${filter %.o,${OBJS}}: %.o: %.c
+	${CC} ${CFLAGS} ${LDFLAGS} -c -o $@ $^
 
 ${SUBPROJS}:
 	${MAKE} -C $@

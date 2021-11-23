@@ -1,10 +1,11 @@
 fake6502
 fake65c02
-*.so
 
+*.so
 *.o
 
-/roms/**/*.bin
+roms/**/*.bin
+roms/**/*.lst
 
-
-/roms/**/*.lst
+build/
+.ninja_log

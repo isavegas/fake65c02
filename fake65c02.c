@@ -70,7 +70,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include "include/fake6502.h"
+#include "fake65c02.h"
 
 // 6502 defines
 //#define UNDOCUMENTED //when this is defined, undocumented opcodes are handled.

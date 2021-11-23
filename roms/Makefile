@@ -2,7 +2,6 @@ SHELL= /bin/sh
 
 ASM ?= vasm6502_oldstyle
 ASM_FLAGS ?= -Fbin -esc -c02 -quiet -chklabels
-DEBUG ?=
 
 ifdef DEBUG
 	ASM_FLAGS += -DDEBUG

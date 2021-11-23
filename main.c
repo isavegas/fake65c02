@@ -1,4 +1,4 @@
-#include "include/main.h"
+#include "main.h"
 
 #define MIN(a, b) ((a) < (b)) ? (a) : (b)
 
@@ -75,7 +75,9 @@ uint8_t read_memory(fake6502_t *context, uint16_t address) {
 void write_memory(fake6502_t *context, uint16_t address, uint8_t value) {
   machine_t machine = (machine_t)context->m;
   uint8_t *ram = machine->ram;
+#if defined(WRITABLE_ROM) || defined(WRITABLE_VECTORS)
   uint8_t *rom = machine->rom;
+#endif
 
   switch (address) {
   case SERIAL_OUT:
@@ -117,20 +119,22 @@ void write_memory(fake6502_t *context, uint16_t address, uint8_t value) {
     if (address >= RAM_LOCATION && address < RAM_LOCATION + RAM_SIZE) {
       ram[(unsigned int)(address - RAM_LOCATION)] = value;
     }
+#ifdef WRITABLE_ROM
     if (address >= ROM_LOCATION && address < ROM_LOCATION + ROM_SIZE) {
       unsigned int addr = (unsigned int)(address - ROM_LOCATION);
-#ifdef WRITABLE_ROM
       rom[addr] = value;
-#else
-#ifdef WRITABLE_VECTORS
+    }
+#endif
+#if defined(WRITABLE_VECTORS) && !defined(WRITABLE_ROM)
+    if (address >= ROM_LOCATION && address < ROM_LOCATION + ROM_SIZE) {
+      unsigned int addr = (unsigned int)(address - ROM_LOCATION);
       // Most of ROM is not writable, but we allow vectors to be written
       // to allow direct redefinition of interrupt handler pointers.
       if (addr >= VECTORS_LOCATION) {
         rom[addr] = value;
       }
-#endif
-#endif
     }
+#endif
   }
 }
 
