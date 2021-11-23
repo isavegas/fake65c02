@@ -9,17 +9,21 @@ ifdef DEBUG
 endif
 
 TESTS = tests/test_stack.bin tests/test_65c02.bin
+BENCHES = benches/fibonacci.bin
 EXAMPLES = examples/hello_world.bin
 
-.PHONY: all test clean examples test_6502 test_65c02
+.PHONY: all test clean examples
 
-all: examples $(TESTS)
+all: examples ${BENCHES} ${TESTS}
 
-$(TESTS): %.bin: %.s %.lst lib.s
-	${ASM} ${ASM_FLAGS} -o $@ -L $(word 2, $^) $<
+${TESTS}: %.bin: %.s %.lst lib.s
+	${ASM} ${ASM_FLAGS} -o $@ -L ${word 2, $^} $<
 
-$(EXAMPLES): %.bin: %.s %.lst lib.s
-	${ASM} ${ASM_FLAGS} -o $@ -L $(word 2, $^) $<
+${EXAMPLES}: %.bin: %.s %.lst lib.s
+	${ASM} ${ASM_FLAGS} -o $@ -L ${word 2, $^} $<
+
+${BENCHES}: %.bin: %.s %.lst lib.s
+	${ASM} ${ASM_FLAGS} -o $@ -L ${word 2, $^} $<
 
 %.lst:
 	touch $@
@@ -27,10 +31,10 @@ $(EXAMPLES): %.bin: %.s %.lst lib.s
 %.s:
 	touch $@
 
-examples: $(EXAMPLES) ;
+examples: ${EXAMPLES} ;
 
 test: ${TESTS}
-	$(foreach var,$(TESTS),echo Running $(var):;../fake65c02 $(var);)
+	${foreach var,${TESTS},echo Running ${var}:;../fake65c02 ${var};}
 
 clean:
 	-rm -f *.bin tests/*.bin examples/*.bin

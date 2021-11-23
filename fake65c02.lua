@@ -1,6 +1,38 @@
+#!/usr/bin/env lua
+
+FAKE65C02_VERSION='0.1.0'
+
+-- [[ Handle command line arguments ]]
+-- Keeping it simple, as this is just
+-- an example and alternate testing
+-- tool.
+
+local args = {...}
+local rom_files = {}
+
+local table_banks = false
+
+for i, a in pairs(args) do
+    if a == [[--help]] or a == [[-h]] then
+        print("TODO: --help")
+        os.exit(0)
+    elseif a == [[--version]] or a == [[-v]] then
+        print(string.format("fake65c02.lua v%s :: %s", FAKE65C02_VERSION, jit.version))
+        os.exit(0)
+    elseif a == [[--table_banks]] then
+        table_banks = true
+    else
+        rom_files[#rom_files+1] = a
+    end
+end
+
+--[[ Load fake65c02 ]]
+
 local ffi = require("ffi")
 
-local fake6502 = ffi.load('./fake65c02.so')
+local fake6502 = ffi.load('./libfake65c02.so')
+
+-- [[ Definitions for our fake65c02.so ]]
 
 ffi.cdef[[
 
@@ -66,164 +98,167 @@ local IO_HOOK_CALL = 0xfd
 local IO_HOOK_FUNC = 0xfe
 local IO_HOOK = 0xff
 
-local io_out = 0x00
-local serial = 0x00
-local last_serial = 0x00
-local io_cmd = 0x00
+--[[ Define CDATA objects for storing our memory banks]]
 
-ffi.C.printf("Running from %s on %s %s\n\n", jit.version, jit.os, jit.arch)
+ffi.cdef([[
 
-local ctx = fake6502.new_fake6502(nil);
-
-ffi.cdef[[
-  typedef struct bank32k* bank32k_t;
-  struct bank32k {
+  typedef struct bank32 bank32_t;
+  struct bank32 {
     uint16_t location;
-    uint16_t memory[0x8000];
+    uint8_t memory[0x8000];
   };
-]]
 
-local ram = {}
-ram.location = 0x0000
-ram.memory = {}
-local rom = {}
-rom.location = 0x8000
-rom.memory = {}
+]])
 
-function set(addr, value)
-    if addr >= ram.location and addr < ram.location + 0x8000 then
-        ram[addr - ram.location] = value
-    end
-    if addr >= rom.location and addr < rom.location + 0x8000 then
-        rom[addr - rom.location] = value
-    end
-end
+--[[ Initialize memory banks ]]
 
-function get(addr)
-    if addr >= ram.location and addr < ram.location + 0x8000 then
-        return ram[addr - ram.location] or 0x00
+local new_bank32
+
+if table_banks then
+--    print('Using table memory banks')
+    new_bank32 = function(location)
+        return { memory = {}, location = location }
     end
-    if addr >= rom.location and addr < rom.location + 0x8000 then
-        return rom[addr - rom.location] or 0x00
+else
+--    print('Using CDATA memory banks')
+    new_bank32 = function(location)
+        local bank = ffi.new("bank32_t")
+        bank.location = location
+        return bank
     end
 end
 
-function set16(addr, value)
-    set(addr, bit.band(value, 0x00ff))
-    set(addr+1, bit.rshift(value, 8))
+-- [[ Functions to read and write to our memory banks ]]
+
+local state_mt = {}
+
+function state_mt:set(addr, value)
+    local ram = self.ram
+    if addr >= ram.location and addr < ram.location + 0x8000 then
+        ram.memory[addr - ram.location] = value
+    end
+    local rom = self.rom
+    if addr >= rom.location and addr < rom.location + 0x8000 then
+        --rom.memory[addr - rom.location] = value
+    end
+end
+
+function state_mt:get(addr)
+    local ram = self.ram
+    if addr >= ram.location and addr < ram.location + 0x8000 then
+        return ram.memory[addr - ram.location] or 0x00
+    end
+    local rom = self.rom
+    if addr >= rom.location and addr < rom.location + 0x8000 then
+        return rom.memory[addr - rom.location] or 0x00
+    end
+end
+
+function state_mt:set16(addr, value)
+    self:set(addr, bit.band(value, 0x00ff))
+    self:set(addr+1, bit.rshift(value, 8))
     return 2
 end
 
-function set8(addr, value)
-    set(addr, bit.band(value, 0x00ff))
+function state_mt:set8(addr, value)
+    self:set(addr, bit.band(value, 0x00ff))
     return 1
 end
 
-function get16(addr)
-    return bit.band(get(addr), 0x00ff) + bit.lshift(get(addr+1), 8)
+function state_mt:get16(addr)
+    return bit.band(self:get(addr), 0x00ff) + bit.lshift(self:get(addr+1), 8)
 end
 
-function get8(addr)
-    return bit.band(get(addr), 0x00ff)
+function state_mt:get8(addr)
+    return bit.band(self:get(addr), 0x00ff)
 end
 
-
---[[ Simple test machine code ]]
-
--- Jump to 0xff when CPU is reset
--- We're using 0xff to ensure that the
--- RAM bank is set correctly along with
--- the ROM bank. Skip past 0x00ff to ensure
--- we don't have our code overwritten by
--- writes to the stack
-local entry = 0x00ff
-set16(0xfffc, entry)
-
-local i = entry
-local LDA_imm = 0xa9
-local STA_abs = 0x8d
-local JSR = 0x20
-local RTS = 0x60
-local JMP = 0x4c
-
--- Simple way to build a ROM
-local s = "Hello, world"
-for c = 1, string.len(s) do
-    i = i + set8(i, LDA_imm)
-    i = i + set8(i, string.byte(string.sub(s, c, c))) -- ASCII char
-    i = i + set8(i, STA_abs)
-    i = i + set16(i, SERIAL) -- Address of serial port
+function state_mt:read_memory(_context, addr)
+  return self:get8(addr)
 end
 
--- Now let's use JSR/RTS to test out the stack.
-i = i + set8(i, JSR)
-i = i + set16(i, i+5)
-i = i + set8(i, JMP) -- RTS should jump back here
-i = i + set16(i, 7) -- Jump down past the RTS instruction
-i = i + set8(i, LDA_imm)
-i = i + set8(i, string.byte('\n'))
-i = i + set8(i, STA_abs)
-i = i + set16(i, SERIAL)
-i = i + set8(i, RTS)
-
--- Halt the emulator loop by pushing the halt command on the
--- IO command port
-i = i + set8(i, LDA_imm)
-i = i + set8(i, 0x00) -- exit code
-i = i + set8(i, STA_abs)
-i = i + set16(i, IO_OUT)
-i = i + set8(i, LDA_imm)
-i = i + set8(i, IO_HALT)
-i = i + set8(i, STA_abs)
-i = i + set16(i, IO_CMD)
-
-local function read_memory(c, addr)
-    return get8(addr)
-end
-local function write_memory(c, addr, value)
-  -- Detect that our program above has worked correctly
+function state_mt:write_memory(_context, addr, value)
   if addr == IO_OUT then
-    io_out = value
+    self.io_out = value
     return
   end
   if addr == IO_CMD then
-    io_cmd = value
+    self.io_cmd = value
     return
   end
   if addr == SERIAL then
     io.write(string.char(value))
+    return
   end
-  set8(addr, value)
+
+  self:set8(addr, value)
 end
 
-
-ctx.read = ffi.cast("read_memory", read_memory)
-ctx.write = ffi.cast("write_memory", write_memory)
-
-
-fake6502.reset6502(ctx);
-
-local halted = false
-local exit_code = 1
-local ins = 0
-while not halted do
-    fake6502.step6502(ctx);
-    io.write(string.format("$%02x", ctx.sp))
-    for f = 0xfd, 0xfd-255, -1 do
-      io.write(string.format("$%02x", get8(f)))
-    end
-    io.write("\n")
-
-    if io_cmd == IO_HALT then
-        exit_code = io_out
-        halted = true
-    end
-    ins = ins + 1
+function state_mt:reset()
+    fake6502.reset6502(self.context)
 end
 
-if exit_code == 0 then
-  print("Successfully ran test rom")
-else
-  error("Unable to run test rom")
-  os.exit(1)
+function state_mt:step()
+    fake6502.step6502(self.context)
+end
+
+function state_mt:run(n)
+    local c = self.context
+    while self.io_cmd ~= IO_HALT do
+      fake6502.step6502(c)
+    end
+    print("halted")
+end
+
+function new_state()
+  local state = {
+    io_out = 0,
+    io_cmd = 0,
+    io_in = 0,
+  }
+  setmetatable(state, {__index=state_mt})
+  state.context = fake6502.new_fake6502(nil)
+  state.ram = new_bank32(0x0000)
+  state.rom = new_bank32(0x8000)
+  state.context.read = function(context, address)
+    return state:read_memory(context, address) or 0x00
+  end
+  state.context.write = function(context, address, value)
+    state:write_memory(context, address, value)
+  end
+  return state
+end
+
+--[[ Utility function for debugging purposes ]]
+local function p8(i) print(string.format('%02x',i)) end
+local function p16(i) print(string.format('%04x',i)) end
+
+for _, path in pairs(rom_files) do
+  local f, err = io.open(path, 'rb')
+  if not err then
+    local s = new_state()
+    local i = 0x00
+    if table_banks then
+      local m = s.rom.memory
+      local n = 0x00
+      local chunk_size = 0x0400
+      while n - chunk_size < 0x8000 do
+        local d = f:read(chunk_size)
+        if not d then break end
+        for i = 1,#d do
+            m[n + (i-1)] = string.byte(string.sub(d, i, i))
+        end
+        n = n + #d
+      end
+    else
+      -- TODO: Handle mismatched sizes correctly. What if a rom is too small?
+      ffi.copy(s.rom.memory, f:read(0x8000), 0x8000)
+    end
+    f:close()
+    s:reset()
+    s:run()
+  else
+    print(string.format("Error opening %s", err))
+    os.exit(1)
+  end
 end

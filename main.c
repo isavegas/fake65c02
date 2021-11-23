@@ -32,7 +32,7 @@ const uint16_t ROM_LOCATION = 0x8000;
 
 #define ALIGNMENT 128
 
-const uint8_t HALTED =  0b00000001;
+const uint8_t HALTED = 0b00000001;
 const uint8_t STOPPED = 0b00000010;
 const uint8_t WAITING = 0b00000100;
 
