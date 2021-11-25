@@ -1,3 +1,6 @@
+/* fake65c02.h is released into the public domain. */
+/* Enjoy playing with your emulated 65c02.         */
+
 #ifndef FAKE65C02_H
 #define FAKE65C02_H
 
