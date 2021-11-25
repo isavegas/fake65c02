@@ -68,8 +68,6 @@
  *                                                   *
  *****************************************************/
 
-#include <stdint.h>
-#include <stdio.h>
 #include "fake65c02.h"
 
 // 6502 defines
@@ -294,10 +292,6 @@ static uint16_t getvalue(fake65c02_t *context) {
     return ((uint16_t)context->a);
   else
     return ((uint16_t)context->read(context, context->ea));
-}
-
-static uint16_t getvalue16(fake65c02_t *context) {
-  return ((uint16_t)context->read(context, context->ea) | ((uint16_t)context->read(context, context->ea + 1) << 8));
 }
 
 static void putvalue(fake65c02_t *context, uint16_t saveval) {
