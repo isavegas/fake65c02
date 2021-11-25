@@ -38,7 +38,7 @@ const uint8_t WAITING = 0b00000100;
 
 typedef struct machine *machine_t;
 struct machine {
-  fake6502_t *context;
+  fake65c02_t *context;
   uint8_t state;
 
   uint8_t io_in;
@@ -56,7 +56,7 @@ struct machine {
   uint8_t rom[ROM_SIZE];
 } __attribute__((aligned(ALIGNMENT))) __attribute__((packed));
 
-uint8_t read_memory(fake6502_t *context, uint16_t address) {
+uint8_t read_memory(fake65c02_t *context, uint16_t address) {
   machine_t machine = (machine_t)context->m;
   uint8_t *ram = machine->ram;
   uint8_t *rom = machine->rom;
@@ -72,7 +72,7 @@ uint8_t read_memory(fake6502_t *context, uint16_t address) {
   return OP_NOOP;
 }
 
-void write_memory(fake6502_t *context, uint16_t address, uint8_t value) {
+void write_memory(fake65c02_t *context, uint16_t address, uint8_t value) {
   machine_t machine = (machine_t)context->m;
   uint8_t *ram = machine->ram;
 #if defined(WRITABLE_ROM) || defined(WRITABLE_VECTORS)
@@ -147,7 +147,7 @@ void write_memory(fake6502_t *context, uint16_t address, uint8_t value) {
 #define FLAG_OVERFLOW 0x40U
 #define FLAG_SIGN 0x80U
 
-void debug_hook(fake6502_t *context) {
+void debug_hook(fake65c02_t *context) {
   printf(" [debug] A: $%02x, X: $%02x, Y: $%02x, Z: %i, C: %i\n", context->a,
          context->x, context->y, (context->status & FLAG_ZERO) > 0U,
          (context->status & FLAG_CARRY) > 0);
@@ -159,7 +159,7 @@ void debug_hook(fake6502_t *context) {
   fflush(stdout);
 }
 
-void hook(fake6502_t *context) {
+void hook(fake65c02_t *context) {
   machine_t machine = (machine_t)context->m;
   if (machine->debug_steps > 0) {
     machine->debug_steps--;
@@ -210,13 +210,13 @@ int main(int argc, char *argv[]) {
     printf("Running %s\n", file_name);
     machine_t m = calloc(1, sizeof(struct machine));
     if (load_bank(m->rom, file_name, ROM_SIZE)) {
-      m->context = new_fake6502(m);
+      m->context = new_fake65c02(m);
       m->context->read = read_memory;
       m->context->write = write_memory;
       m->context->hook = hook;
-      reset6502(m->context);
+      reset65c02(m->context);
       while ((m->state & HALTED) == 0) {
-        step6502(m->context);
+        step65c02(m->context);
       }
       if (m->serial_written == 1 && m->serial != '\n' &&
           (m->serial == 0 && m->serial_last != '\n')) {
@@ -232,7 +232,7 @@ int main(int argc, char *argv[]) {
       printf("Unable to read %s\n", argv[i]);
       return_code += 1;
     }
-    free_fake6502(m->context);
+    free_fake65c02(m->context);
     free(m);
   }
 

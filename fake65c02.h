@@ -1,18 +1,18 @@
-#ifndef FAKE6502_H
-#define FAKE6502_H
+#ifndef FAKE65C02_H
+#define FAKE65C02_H
 
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdint.h>
 
-typedef struct fake6502 fake6502_t;
+typedef struct fake65c02 fake65c02_t;
 
-struct fake6502 {
+struct fake65c02 {
     void *m;
 
-    uint8_t (*read)(fake6502_t *ctx, uint16_t address);
-    void (*write)(fake6502_t *ctx, uint16_t address, uint8_t value);
-    void (*hook)(fake6502_t *ctx);
+    uint8_t (*read)(fake65c02_t *ctx, uint16_t address);
+    void (*write)(fake65c02_t *ctx, uint16_t address, uint8_t value);
+    void (*hook)(fake65c02_t *ctx);
 
     uint16_t pc;
 
@@ -43,19 +43,13 @@ struct fake6502 {
     uint32_t clockgoal;
 };
 
-fake6502_t *new_fake6502(void* m);
-void free_fake6502(fake6502_t *context);
+fake65c02_t *new_fake65c02(void* m);
+void free_fake65c02(fake65c02_t *context);
 
-int reset6502(fake6502_t *context);
-int step6502(fake6502_t *context);
-int irq6502(fake6502_t *context);
-int nmi6502(fake6502_t *context);
-int exec6502(fake6502_t *context, uint32_t tickcount);
-
-/**
-* These functions need to be provided
-*/
-// void read6502(uint16_t address);
-// void write6502(uint16_t address, uint8_t value);
+int reset65c02(fake65c02_t *context);
+int step65c02(fake65c02_t *context);
+int irq65c02(fake65c02_t *context);
+int nmi65c02(fake65c02_t *context);
+int exec65c02(fake65c02_t *context, uint32_t tickcount);
 
 #endif
