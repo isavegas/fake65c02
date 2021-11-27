@@ -1,7 +1,7 @@
 SHELL= /bin/sh
 
 CC = clang
-CFLAGS ?= -march=native -Werror=implicit-function-declaration -D WRITABLE_VECTORS -D UNDOCUMENTED -fPIC
+CFLAGS ?= -march=native -Werror=implicit-function-declaration -DWRITABLE_VECTORS -DUNDOCUMENTED -fPIC
 RELEASE_CFLAGS ?= -O2 -flto=thin
 export DEBUG ?=
 DEBUG_CFLAGS ?= -g -O0 -D DEBUG
