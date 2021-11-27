@@ -8,7 +8,9 @@ alias make := build
 alias gmake := build
 
 # Use gmake on BSD family. Might need if/else tree if this doesn't work for all of them.
-build_cmd := if arch() =~ ".*BSD" { "gmake" } else { "make" }
+# Note that FreeBSD's pkg repo version of justfile doesn't have regex support built-in.
+# You'll need to install it via cargo, unfortunately.
+build_cmd := if os() =~ ".*bsd" { "gmake" } else { "make" }
 
 # -> build
 @default: build
