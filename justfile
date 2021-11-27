@@ -22,7 +22,7 @@ build_cmd := if os() =~ ".*bsd" { "gmake" } else { "make" }
 
 # Show platform info
 @info:
-    command -v uname > /dev/null 2>&1 && uname -a || echo {{name}} :: {{os()}} {{arch()}}
+    echo {{name}} :: {{os()}} {{arch()}}
 
 # Build project
 @build:
@@ -37,5 +37,5 @@ build_cmd := if os() =~ ".*bsd" { "gmake" } else { "make" }
     {{build_cmd}} test
 
 # Watch our project, building and running cmd on updates
-@watch cmd:
+@watch cmd="./fake65c02 roms/tests/test_65c02.bin":
     watchexec -c -r -w . -w roms "just build && {{cmd}}"
