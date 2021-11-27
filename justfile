@@ -7,20 +7,33 @@ name := "fake65c02"
 alias make := build
 alias gmake := build
 
+# Use gmake on BSD family. Might need if/else tree if this doesn't work for all of them.
+build_cmd := if arch() =~ ".*BSD" { "gmake" } else { "make" }
 
-@default:
+# -> build
+@default: build
+
+# List all just targets
+@list:
     just --list --unsorted --list-heading "$(printf 'Targets for {{name}}::\n\r')"
 
-# Platform info.
-info:
-    #!/usr/bin/env sh
-    command -v uname > /dev/null 2>&1 && uname -a && exit 0
-    echo user justfile :: linux x86_64
 
-# Build using GNU Make, regardless of platform
+# Show platform info
+@info:
+    command -v uname > /dev/null 2>&1 && uname -a || echo {{name}} :: {{os()}} {{arch()}}
+
+# Build project
 @build:
-    [ "$(uname)" = *"BSD" ] && gmake || make
+    {{build_cmd}}
 
-# Watch our project, building on updates
+# Clean project
+@clean:
+    {{build_cmd}} clean
+
+# Run tests for project
+@test:
+    {{build_cmd}} test
+
+# Watch our project, building and running cmd on updates
 @watch cmd:
     watchexec -c -r -w . -w roms "just build && {{cmd}}"
