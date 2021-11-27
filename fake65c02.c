@@ -79,15 +79,13 @@
 // CPU in the Nintendo Entertainment System does not
 // support BCD operation.
 
-fake65c02_t* new_fake65c02(void* m) {
-    fake65c02_t *c = calloc(1, sizeof(fake65c02_t));
-    c->m = m;
-    return c;
+fake65c02_t *new_fake65c02(void *m) {
+  fake65c02_t *c = calloc(1, sizeof(fake65c02_t));
+  c->m = m;
+  return c;
 }
 
-void free_fake65c02(fake65c02_t *context) {
-    free(context);
-}
+void free_fake65c02(fake65c02_t *context) { free(context); }
 
 #define FLAG_CARRY 0x01
 #define FLAG_ZERO 0x02
@@ -100,7 +98,7 @@ void free_fake65c02(fake65c02_t *context) {
 
 #define BASE_STACK 0x100
 
-#define saveaccum(context, n) context->a =(uint8_t)((n)&0x00FF)
+#define saveaccum(context, n) context->a = (uint8_t)((n)&0x00FF)
 
 // flag modifier macros
 #define setcarry(context) context->status |= FLAG_CARRY
@@ -152,7 +150,8 @@ void free_fake65c02(fake65c02_t *context) {
 // a few general functions used by various other functions
 void push16(fake65c02_t *context, uint16_t pushval) {
   context->write(context, BASE_STACK + ((uint16_t)context->sp), pushval >> 8);
-  context->write(context, BASE_STACK + (((uint16_t)context->sp) - 1), pushval & 0xff);
+  context->write(context, BASE_STACK + (((uint16_t)context->sp) - 1),
+                 pushval & 0xff);
   context->sp -= 2;
 }
 
@@ -179,7 +178,8 @@ int reset65c02(fake65c02_t *context) {
   if (context->read == NULL || context->write == NULL) {
     return 0;
   }
-  context->pc = (uint16_t)context->read(context, 0xFFFC) | ((uint16_t)context->read(context, 0xFFFD) << 8);
+  context->pc = (uint16_t)context->read(context, 0xFFFC) |
+                ((uint16_t)context->read(context, 0xFFFD) << 8);
   context->a = 0;
   context->x = 0;
   context->y = 0;
@@ -206,35 +206,40 @@ static void zp(fake65c02_t *context) { // zero-page
 }
 
 static void zpx(fake65c02_t *context) { // zero-page,X
-  context->ea = ((uint16_t)context->read(context, (uint16_t)context->pc++) + (uint16_t)context->x) &
-       0xFF; // zero-page wraparound
+  context->ea = ((uint16_t)context->read(context, (uint16_t)context->pc++) +
+                 (uint16_t)context->x) &
+                0xFF; // zero-page wraparound
 }
 
 static void zpy(fake65c02_t *context) { // zero-page,Y
-  context->ea = ((uint16_t)context->read(context, (uint16_t)context->pc++) + (uint16_t)context->y) &
-       0xFF; // zero-page wraparound
+  context->ea = ((uint16_t)context->read(context, (uint16_t)context->pc++) +
+                 (uint16_t)context->y) &
+                0xFF; // zero-page wraparound
 }
 
-static void
-rel(fake65c02_t *context) { // relative for branch ops (8-bit immediate value, sign-extended)
+static void rel(fake65c02_t *context) { // relative for branch ops (8-bit
+                                        // immediate value, sign-extended)
   context->reladdr = (uint16_t)context->read(context, context->pc++);
   if (context->reladdr & 0x80)
     context->reladdr |= 0xFF00;
 }
 
 static void abso(fake65c02_t *context) { // absolute
-  context->ea = (uint16_t)(context->read(context, context->pc)) | ((uint16_t)context->read(context, context->pc + 1) << 8);
+  context->ea = (uint16_t)(context->read(context, context->pc)) |
+                ((uint16_t)context->read(context, context->pc + 1) << 8);
   context->pc += 2;
 }
 
 static void absx(fake65c02_t *context) { // absolute,X
   uint16_t startpage;
-  context->ea = ((uint16_t)context->read(context, context->pc) | ((uint16_t)context->read(context, context->pc + 1) << 8));
+  context->ea = ((uint16_t)context->read(context, context->pc) |
+                 ((uint16_t)context->read(context, context->pc + 1) << 8));
   startpage = context->ea & 0xFF00;
   context->ea += (uint16_t)context->x;
 
   if (startpage !=
-      (context->ea & 0xFF00)) { // one cycle penlty for page-crossing on some opcodes
+      (context->ea &
+       0xFF00)) { // one cycle penlty for page-crossing on some opcodes
     penaltyaddr = 1;
   }
 
@@ -243,12 +248,14 @@ static void absx(fake65c02_t *context) { // absolute,X
 
 static void absy(fake65c02_t *context) { // absolute,Y
   uint16_t startpage;
-  context->ea = ((uint16_t)context->read(context, context->pc) | ((uint16_t)context->read(context, context->pc + 1) << 8));
+  context->ea = ((uint16_t)context->read(context, context->pc) |
+                 ((uint16_t)context->read(context, context->pc + 1) << 8));
   startpage = context->ea & 0xFF00;
   context->ea += (uint16_t)context->y;
 
   if (startpage !=
-      (context->ea & 0xFF00)) { // one cycle penlty for page-crossing on some opcodes
+      (context->ea &
+       0xFF00)) { // one cycle penlty for page-crossing on some opcodes
     penaltyaddr = 1;
   }
 
@@ -257,32 +264,37 @@ static void absy(fake65c02_t *context) { // absolute,Y
 
 static void ind(fake65c02_t *context) { // indirect
   uint16_t eahelp, eahelp2;
-  eahelp = (uint16_t)context->read(context, context->pc) | (uint16_t)((uint16_t)context->read(context, context->pc + 1) << 8);
+  eahelp = (uint16_t)context->read(context, context->pc) |
+           (uint16_t)((uint16_t)context->read(context, context->pc + 1) << 8);
   eahelp2 =
       (eahelp & 0xFF00) |
       ((eahelp + 1) & 0x00FF); // replicate 65c02 page-boundary wraparound bug
-  context->ea = (uint16_t)context->read(context, eahelp) | ((uint16_t)context->read(context, eahelp2) << 8);
+  context->ea = (uint16_t)context->read(context, eahelp) |
+                ((uint16_t)context->read(context, eahelp2) << 8);
   context->pc += 2;
 }
 
 static void indx(fake65c02_t *context) { // (indirect,X)
   uint16_t eahelp;
-  eahelp = (uint16_t)(((uint16_t)context->read(context, context->pc++) + (uint16_t)context->x) &
+  eahelp = (uint16_t)(((uint16_t)context->read(context, context->pc++) +
+                       (uint16_t)context->x) &
                       0xFF); // zero-page wraparound for table pointer
   context->ea = (uint16_t)context->read(context, eahelp & 0x00FF) |
-       ((uint16_t)context->read(context, (eahelp + 1) & 0x00FF) << 8);
+                ((uint16_t)context->read(context, (eahelp + 1) & 0x00FF) << 8);
 }
 
 static void indy(fake65c02_t *context) { // (indirect),Y
   uint16_t eahelp, eahelp2, startpage;
   eahelp = (uint16_t)context->read(context, context->pc++);
   eahelp2 = (eahelp & 0xFF00) | ((eahelp + 1) & 0x00FF); // zero-page wraparound
-  context->ea = (uint16_t)context->read(context, eahelp) | ((uint16_t)context->read(context, eahelp2) << 8);
+  context->ea = (uint16_t)context->read(context, eahelp) |
+                ((uint16_t)context->read(context, eahelp2) << 8);
   startpage = context->ea & 0xFF00;
   context->ea += (uint16_t)context->y;
 
   if (startpage !=
-      (context->ea & 0xFF00)) { // one cycle penlty for page-crossing on some opcodes
+      (context->ea &
+       0xFF00)) { // one cycle penlty for page-crossing on some opcodes
     penaltyaddr = 1;
   }
 }
@@ -305,7 +317,8 @@ static void putvalue(fake65c02_t *context, uint16_t saveval) {
 static void adc(fake65c02_t *context) {
   penaltyop = 1;
   context->value = getvalue(context);
-  context->result = (uint16_t)context->a + context->value + (uint16_t)(context->status & FLAG_CARRY);
+  context->result = (uint16_t)context->a + context->value +
+                    (uint16_t)(context->status & FLAG_CARRY);
 
   carrycalc(context, context->result);
   zerocalc(context, context->result);
@@ -331,7 +344,7 @@ static void adc(fake65c02_t *context) {
   saveaccum(context, context->result);
 }
 
-static void and (fake65c02_t *context) {
+static void and (fake65c02_t * context) {
   penaltyop = 1;
   context->value = getvalue(context);
   context->result = (uint16_t)context->a & context->value;
@@ -407,12 +420,12 @@ static void beq(fake65c02_t *context) {
 }
 
 static void bra(fake65c02_t *context) {
-    context->oldpc = context->pc;
-    context->pc += context->reladdr;
-    if ((context->oldpc & 0xFF00) != (context->pc & 0xFF00))
-      context->clockticks += 2; // check if jump crossed a page boundary
-    else
-      context->clockticks++;
+  context->oldpc = context->pc;
+  context->pc += context->reladdr;
+  if ((context->oldpc & 0xFF00) != (context->pc & 0xFF00))
+    context->clockticks += 2; // check if jump crossed a page boundary
+  else
+    context->clockticks++;
 }
 
 static void bit(fake65c02_t *context) {
@@ -458,10 +471,11 @@ static void bpl(fake65c02_t *context) {
 
 static void brk(fake65c02_t *context) {
   context->pc++;
-  push16(context, context->pc);                 // push next instruction address onto stack
+  push16(context, context->pc); // push next instruction address onto stack
   push8(context, context->status | FLAG_BREAK); // push CPU status to stack
-  setinterrupt(context);             // set interrupt flag
-  context->pc = (uint16_t)context->read(context, 0xFFFE) | ((uint16_t)context->read(context, 0xFFFF) << 8);
+  setinterrupt(context);                        // set interrupt flag
+  context->pc = (uint16_t)context->read(context, 0xFFFE) |
+                ((uint16_t)context->read(context, 0xFFFF) << 8);
 }
 
 static void bvc(fake65c02_t *context) {
@@ -609,7 +623,7 @@ static void jsr(fake65c02_t *context) {
 static void lda(fake65c02_t *context) {
   penaltyop = 1;
   context->value = getvalue(context);
-  context->a =(uint8_t)(context->value & 0x00FF);
+  context->a = (uint8_t)(context->value & 0x00FF);
 
   zerocalc(context, context->a);
   signcalc(context, context->a);
@@ -675,7 +689,9 @@ static void pha(fake65c02_t *context) { push8(context, context->a); }
 static void phx(fake65c02_t *context) { push8(context, context->x); }
 static void phy(fake65c02_t *context) { push8(context, context->y); }
 
-static void php(fake65c02_t *context) { push8(context, context->status | FLAG_BREAK); }
+static void php(fake65c02_t *context) {
+  push8(context, context->status | FLAG_BREAK);
+}
 
 static void pla(fake65c02_t *context) {
   context->a = pull8(context);
@@ -698,7 +714,9 @@ static void ply(fake65c02_t *context) {
   signcalc(context, context->y);
 }
 
-static void plp(fake65c02_t *context) { context->status = pull8(context) | FLAG_CONSTANT; }
+static void plp(fake65c02_t *context) {
+  context->status = pull8(context) | FLAG_CONSTANT;
+}
 
 static void rol(fake65c02_t *context) {
   context->value = getvalue(context);
@@ -713,7 +731,8 @@ static void rol(fake65c02_t *context) {
 
 static void ror(fake65c02_t *context) {
   context->value = getvalue(context);
-  context->result = (context->value >> 1) | ((context->status & FLAG_CARRY) << 7);
+  context->result =
+      (context->value >> 1) | ((context->status & FLAG_CARRY) << 7);
 
   if (context->value & 1)
     setcarry(context);
@@ -739,7 +758,8 @@ static void rts(fake65c02_t *context) {
 static void sbc(fake65c02_t *context) {
   penaltyop = 1;
   context->value = getvalue(context) ^ 0x00FF;
-  context->result = (uint16_t)context->a + context->value + (uint16_t)(context->status & FLAG_CARRY);
+  context->result = (uint16_t)context->a + context->value +
+                    (uint16_t)(context->status & FLAG_CARRY);
 
   carrycalc(context, context->result);
   zerocalc(context, context->result);
@@ -885,45 +905,79 @@ static void rra(fake65c02_t *context) {
 #endif
 
 static void (*addrtable[256])() = {
-// $1C :: absx -> abso
-// $14 :: zpx -> zp
-    /*    |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |  A  |  B  |  C  |  D  |  E  |  F  |     */
-    /* 0 */ imp,  indx, imp,  indx, zp,   zp,   zp,   zp,   imp,  imm,  acc,  imm,  abso, abso, abso, abso, /* 0 */
-    /* 1 */ rel,  indy, imp,  indy, zp,   zpx,  zpx,  zpx,  imp,  absy, imp,  absy, abso, absx, absx, absx, /* 1 */
-    /* 2 */ abso, indx, imp,  indx, zp,   zp,   zp,   zp,   imp,  imm,  acc,  imm,  abso, abso, abso, abso, /* 2 */
-    /* 3 */ rel,  indy, imp,  indy, zpx,  zpx,  zpx,  zpx,  imp,  absy, imp,  absy, absx, absx, absx, absx, /* 3 */
-    /* 4 */ imp,  indx, imp,  indx, zp,   zp,   zp,   zp,   imp,  imm,  acc,  imm,  abso, abso, abso, abso, /* 4 */
-    /* 5 */ rel,  indy, imp,  indy, zpx,  zpx,  zpx,  zpx,  imp,  absy, imp,  absy, absx, absx, absx, absx, /* 5 */
-    /* 6 */ imp,  indx, imp,  indx, zp,   zp,   zp,   zp,   imp,  imm,  acc,  imm,  ind,  abso, abso, abso, /* 6 */
-    /* 7 */ rel,  indy, imp,  indy, zpx,  zpx,  zpx,  zpx,  imp,  absy, imp,  absy, indx, absx, absx, absx, /* 7 */
-    /* 8 */ rel,  indx, imm,  indx, zp,   zp,   zp,   zp,   imp,  imm,  imp,  imm,  abso, abso, abso, abso, /* 8 */
-    /* 9 */ rel,  indy, imp,  indy, zpx,  zpx,  zpy,  zpy,  imp,  absy, imp,  absy, abso, absx, absx, absy, /* 9 */
-    /* A */ imm,  indx, imm,  indx, zp,   zp,   zp,   zp,   imp,  imm,  imp,  imm,  abso, abso, abso, abso, /* A */
-    /* B */ rel,  indy, imp,  indy, zpx,  zpx,  zpy,  zpy,  imp,  absy, imp,  absy, absx, absx, absy, absy, /* B */
-    /* C */ imm,  indx, imm,  indx, zp,   zp,   zp,   zp,   imp,  imm,  imp,  imm,  abso, abso, abso, abso, /* C */
-    /* D */ rel,  indy, imp,  indy, zpx,  zpx,  zpx,  zpx,  imp,  absy, imp,  absy, absx, absx, absx, absx, /* D */
-    /* E */ imm,  indx, imm,  indx, zp,   zp,   zp,   zp,   imp,  imm,  imp,  imm,  abso, abso, abso, abso, /* E */
-    /* F */ rel,  indy, imp,  indy, zpx,  zpx,  zpx,  zpx,  imp,  absy, imp,  absy, absx, absx, absx, absx  /* F */
+    // $1C :: absx -> abso
+    // $14 :: zpx -> zp
+    /*    |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |  A  |  B
+       |  C  |  D  |  E  |  F  |     */
+    /* 0 */ imp,  indx, imp, indx, zp,   zp,   zp,   zp,
+    imp,          imm,  acc, imm,  abso, abso, abso, abso, /* 0 */
+    /* 1 */ rel,  indy, imp, indy, zp,   zpx,  zpx,  zpx,
+    imp,          absy, imp, absy, abso, absx, absx, absx, /* 1 */
+    /* 2 */ abso, indx, imp, indx, zp,   zp,   zp,   zp,
+    imp,          imm,  acc, imm,  abso, abso, abso, abso, /* 2 */
+    /* 3 */ rel,  indy, imp, indy, zpx,  zpx,  zpx,  zpx,
+    imp,          absy, imp, absy, absx, absx, absx, absx, /* 3 */
+    /* 4 */ imp,  indx, imp, indx, zp,   zp,   zp,   zp,
+    imp,          imm,  acc, imm,  abso, abso, abso, abso, /* 4 */
+    /* 5 */ rel,  indy, imp, indy, zpx,  zpx,  zpx,  zpx,
+    imp,          absy, imp, absy, absx, absx, absx, absx, /* 5 */
+    /* 6 */ imp,  indx, imp, indx, zp,   zp,   zp,   zp,
+    imp,          imm,  acc, imm,  ind,  abso, abso, abso, /* 6 */
+    /* 7 */ rel,  indy, imp, indy, zpx,  zpx,  zpx,  zpx,
+    imp,          absy, imp, absy, indx, absx, absx, absx, /* 7 */
+    /* 8 */ rel,  indx, imm, indx, zp,   zp,   zp,   zp,
+    imp,          imm,  imp, imm,  abso, abso, abso, abso, /* 8 */
+    /* 9 */ rel,  indy, imp, indy, zpx,  zpx,  zpy,  zpy,
+    imp,          absy, imp, absy, abso, absx, absx, absy, /* 9 */
+    /* A */ imm,  indx, imm, indx, zp,   zp,   zp,   zp,
+    imp,          imm,  imp, imm,  abso, abso, abso, abso, /* A */
+    /* B */ rel,  indy, imp, indy, zpx,  zpx,  zpy,  zpy,
+    imp,          absy, imp, absy, absx, absx, absy, absy, /* B */
+    /* C */ imm,  indx, imm, indx, zp,   zp,   zp,   zp,
+    imp,          imm,  imp, imm,  abso, abso, abso, abso, /* C */
+    /* D */ rel,  indy, imp, indy, zpx,  zpx,  zpx,  zpx,
+    imp,          absy, imp, absy, absx, absx, absx, absx, /* D */
+    /* E */ imm,  indx, imm, indx, zp,   zp,   zp,   zp,
+    imp,          imm,  imp, imm,  abso, abso, abso, abso, /* E */
+    /* F */ rel,  indy, imp, indy, zpx,  zpx,  zpx,  zpx,
+    imp,          absy, imp, absy, absx, absx, absx, absx /* F */
 };
 
 static void (*optable[256])() = {
-    /*    |  0 |  1 |  2 |  3 |  4 |  5 |  6 |  7 |  8 |  9 |  A |  B |  C |  D |  E |  F   |    */
-    /* 0 */ brk, ora, nop, slo, tsb, ora, asl, slo, php, ora, asl, nop, tsb, ora, asl, slo, /* 0 */
-    /* 1 */ bpl, ora, nop, slo, trb, ora, asl, slo, clc, ora, nop, slo, trb, ora, asl, slo, /* 1 */
-    /* 2 */ jsr, and, nop, rla, bit, and, rol, rla, plp, and, rol, nop, bit, and, rol, rla, /* 2 */
-    /* 3 */ bmi, and, nop, rla, bit, and, rol, rla, sec, and, nop, rla, bit, and, rol, rla, /* 3 */
-    /* 4 */ rti, eor, nop, sre, nop, eor, lsr, sre, pha, eor, lsr, nop, jmp, eor, lsr, sre, /* 4 */
-    /* 5 */ bvc, eor, nop, sre, nop, eor, lsr, sre, cli, eor, phy, sre, nop, eor, lsr, sre, /* 5 */
-    /* 6 */ rts, adc, nop, rra, stz, adc, ror, rra, pla, adc, ror, nop, jmp, adc, ror, rra, /* 6 */
-    /* 7 */ bvs, adc, nop, rra, stz, adc, ror, rra, sei, adc, ply, rra, jmp, adc, ror, rra, /* 7 */
-    /* 8 */ bra, sta, nop, sax, sty, sta, stx, sax, dey, nop, txa, nop, sty, sta, stx, sax, /* 8 */
-    /* 9 */ bcc, sta, nop, nop, sty, sta, stx, sax, tya, sta, txs, nop, stz, sta, stz, nop, /* 9 */
-    /* A */ ldy, lda, ldx, lax, ldy, lda, ldx, lax, tay, lda, tax, nop, ldy, lda, ldx, lax, /* A */
-    /* B */ bcs, lda, nop, lax, ldy, lda, ldx, lax, clv, lda, tsx, lax, ldy, lda, ldx, lax, /* B */
-    /* C */ cpy, cmp, nop, dcp, cpy, cmp, dec, dcp, iny, cmp, dex, nop, cpy, cmp, dec, dcp, /* C */
-    /* D */ bne, cmp, nop, dcp, nop, cmp, dec, dcp, cld, cmp, phx, dcp, nop, cmp, dec, dcp, /* D */
-    /* E */ cpx, sbc, nop, isb, cpx, sbc, inc, isb, inx, sbc, nop, sbc, cpx, sbc, inc, isb, /* E */
-    /* F */ beq, sbc, nop, isb, nop, sbc, inc, nop, sed, sbc, plx, isb, nop, sbc, inc, isb /* F */
+    /*    |  0 |  1 |  2 |  3 |  4 |  5 |  6 |  7 |  8 |  9 |  A |  B |  C |  D
+       |  E |  F   |    */
+    /* 0 */ brk, ora, nop, slo, tsb, ora, asl, slo,
+    php,         ora, asl, nop, tsb, ora, asl, slo, /* 0 */
+    /* 1 */ bpl, ora, nop, slo, trb, ora, asl, slo,
+    clc,         ora, nop, slo, trb, ora, asl, slo, /* 1 */
+    /* 2 */ jsr, and, nop, rla, bit, and, rol, rla,
+    plp,         and, rol, nop, bit, and, rol, rla, /* 2 */
+    /* 3 */ bmi, and, nop, rla, bit, and, rol, rla,
+    sec,         and, nop, rla, bit, and, rol, rla, /* 3 */
+    /* 4 */ rti, eor, nop, sre, nop, eor, lsr, sre,
+    pha,         eor, lsr, nop, jmp, eor, lsr, sre, /* 4 */
+    /* 5 */ bvc, eor, nop, sre, nop, eor, lsr, sre,
+    cli,         eor, phy, sre, nop, eor, lsr, sre, /* 5 */
+    /* 6 */ rts, adc, nop, rra, stz, adc, ror, rra,
+    pla,         adc, ror, nop, jmp, adc, ror, rra, /* 6 */
+    /* 7 */ bvs, adc, nop, rra, stz, adc, ror, rra,
+    sei,         adc, ply, rra, jmp, adc, ror, rra, /* 7 */
+    /* 8 */ bra, sta, nop, sax, sty, sta, stx, sax,
+    dey,         nop, txa, nop, sty, sta, stx, sax, /* 8 */
+    /* 9 */ bcc, sta, nop, nop, sty, sta, stx, sax,
+    tya,         sta, txs, nop, stz, sta, stz, nop, /* 9 */
+    /* A */ ldy, lda, ldx, lax, ldy, lda, ldx, lax,
+    tay,         lda, tax, nop, ldy, lda, ldx, lax, /* A */
+    /* B */ bcs, lda, nop, lax, ldy, lda, ldx, lax,
+    clv,         lda, tsx, lax, ldy, lda, ldx, lax, /* B */
+    /* C */ cpy, cmp, nop, dcp, cpy, cmp, dec, dcp,
+    iny,         cmp, dex, nop, cpy, cmp, dec, dcp, /* C */
+    /* D */ bne, cmp, nop, dcp, nop, cmp, dec, dcp,
+    cld,         cmp, phx, dcp, nop, cmp, dec, dcp, /* D */
+    /* E */ cpx, sbc, nop, isb, cpx, sbc, inc, isb,
+    inx,         sbc, nop, sbc, cpx, sbc, inc, isb, /* E */
+    /* F */ beq, sbc, nop, isb, nop, sbc, inc, nop,
+    sed,         sbc, plx, isb, nop, sbc, inc, isb /* F */
 };
 
 static const uint32_t ticktable[256] = {
@@ -950,7 +1004,8 @@ int nmi65c02(fake65c02_t *context) {
   push16(context, context->pc);
   push8(context, context->status);
   context->status |= FLAG_INTERRUPT;
-  context->pc = (uint16_t)context->read(context, 0xFFFA) | ((uint16_t)context->read(context, 0xFFFB) << 8);
+  context->pc = (uint16_t)context->read(context, 0xFFFA) |
+                ((uint16_t)context->read(context, 0xFFFB) << 8);
   return 1;
 }
 
@@ -958,14 +1013,12 @@ int irq65c02(fake65c02_t *context) {
   push16(context, context->pc);
   push8(context, context->status);
   context->status |= FLAG_INTERRUPT;
-  context->pc = (uint16_t)context->read(context, 0xFFFE) | ((uint16_t)context->read(context, 0xFFFF) << 8);
+  context->pc = (uint16_t)context->read(context, 0xFFFE) |
+                ((uint16_t)context->read(context, 0xFFFF) << 8);
   return 1;
 }
 
-//uint8_t callexternal = 0;
-//void (*loopexternal)(fake65c02_t *context);
-
-void exec(fake65c02_t *context, uint32_t tickcount) {
+int exec(fake65c02_t *context, uint32_t tickcount) {
   context->clockgoal += tickcount;
 
   while (context->clockticks < context->clockgoal) {
@@ -983,12 +1036,10 @@ void exec(fake65c02_t *context, uint32_t tickcount) {
 
     context->instructions++;
 
-    // TODO: Hooks
-    /*
-    if (callexternal)
-      (*loopexternal)(context);
-      */
+    if (context->hook != NULL)
+      context->hook(context);
   }
+  return 1;
 }
 
 int step65c02(fake65c02_t *context) {
@@ -1007,18 +1058,7 @@ int step65c02(fake65c02_t *context) {
 
   context->instructions++;
 
+  if (context->hook != NULL)
+    context->hook(context);
   return 1;
-
-  // TODO: Hooks
-  /*if (callexternal)
-    (*loopexternal)(context);*/
 }
-
-// TODO: Hooks
-/*void hook(void *funcptr) {
-  if (funcptr != (void *)NULL) {
-    loopexternal = funcptr;
-    callexternal = 1;
-  } else
-    callexternal = 0;
-}*/

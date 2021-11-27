@@ -15,16 +15,13 @@ print_hi:
 
 reset:
     jsr print_hi
-    lda #"."
+    lda #"o"
+    sta SERIAL
+    lda #"k"
     sta SERIAL
     lda #"\n"
     sta SERIAL
     halt 0
-
-loop:
-    lda #"."
-    sta SERIAL
-    jmp loop
 
     org $fffc
     word reset

@@ -109,6 +109,11 @@ void write_memory(fake65c02_t *context, uint16_t address, uint8_t value) {
       machine->hooked_call = 1;
       machine->io_cmd = 0;
       break;
+    case IO_HOOK_FUNC:
+      machine->hooked_call = 1;
+      machine->call_level = 1;
+      machine->io_cmd = 0;
+      break;
     case IO_HALT:
       machine->state |= HALTED;
       machine->exit_code = machine->io_out;
@@ -180,7 +185,7 @@ void hook(fake65c02_t *context) {
   }
 }
 
-const int BUFFER_SIZE = 4 * 1024;
+#define BUFFER_SIZE 4096
 size_t load_bank(uint8_t *bank, char *path, unsigned int bank_size) {
   FILE *fp = fopen(path, "rbe");
   if (fp == NULL) {
