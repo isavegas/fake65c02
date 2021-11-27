@@ -26,11 +26,16 @@ for i, a in pairs(args) do
     end
 end
 
+if #rom_files == 0 then
+    print("Please supply rom file(s)")
+    os.exit(0)
+end
+
 --[[ Load fake65c02 ]]
 
 local ffi = require("ffi")
 
-local fake6502 = ffi.load('./libfake65c02.so')
+local fake65c02 = ffi.load('./libfake65c02.so')
 
 -- [[ Definitions for our fake65c02.so ]]
 
@@ -38,17 +43,17 @@ ffi.cdef[[
 
 int printf(const char *fmt, ...);
 
-typedef struct fake6502 fake6502_t;
+typedef struct fake65c02 fake65c02_t;
 
-typedef uint8_t (*read_memory)(fake6502_t *ctx, uint16_t address);
-typedef void (*write_memory)(fake6502_t *ctx, uint16_t address, uint8_t value);
+typedef uint8_t (*read_memory)(fake65c02_t *ctx, uint16_t address);
+typedef void (*write_memory)(fake65c02_t *ctx, uint16_t address, uint8_t value);
 
-struct fake6502 {
+struct fake65c02 {
     void *m;
 
     read_memory read;
     write_memory write;
-    void (*hook)(fake6502_t *ctx);
+    void (*hook)(fake65c02_t *ctx);
 
     uint16_t pc;
     uint16_t ea;
@@ -77,14 +82,14 @@ struct fake6502 {
     uint8_t penaltyaddr;
 };
 
-fake6502_t *new_fake6502(void* m);
-void free_fake6502(fake6502_t *context);
+fake65c02_t *new_fake65c02(void* m);
+void free_fake65c02(fake65c02_t *context);
 
-int reset6502(fake6502_t *context);
-int step6502(fake6502_t *context);
-int irq6502(fake6502_t *context);
-int nmi6502(fake6502_t *context);
-int exec6502(fake6502_t *context, uint32_t tickcount);
+int reset65c02(fake65c02_t *context);
+int step65c02(fake65c02_t *context);
+int irq65c02(fake65c02_t *context);
+int nmi65c02(fake65c02_t *context);
+int exec65c02(fake65c02_t *context, uint32_t tickcount);
 
 ]]
 
@@ -195,19 +200,19 @@ function state_mt:write_memory(_context, addr, value)
 end
 
 function state_mt:reset()
-    fake6502.reset6502(self.context)
+    fake65c02.reset65c02(self.context)
 end
 
 function state_mt:step()
-    fake6502.step6502(self.context)
+    fake65c02.step65c02(self.context)
 end
 
 function state_mt:run(n)
     local c = self.context
     while self.io_cmd ~= IO_HALT do
-      fake6502.step6502(c)
+      fake65c02.step65c02(c)
     end
-    print("halted")
+    --print("halted")
 end
 
 function new_state()
@@ -217,7 +222,7 @@ function new_state()
     io_in = 0,
   }
   setmetatable(state, {__index=state_mt})
-  state.context = fake6502.new_fake6502(nil)
+  state.context = fake65c02.new_fake65c02(nil)
   state.ram = new_bank32(0x0000)
   state.rom = new_bank32(0x8000)
   state.context.read = function(context, address)
