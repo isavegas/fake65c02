@@ -1,5 +1,6 @@
 #include "main.h"
 
+// Courtesy of Chris. Thanks!
 #define MIN(a, b) ((a) < (b)) ? (a) : (b)
 
 // Ports

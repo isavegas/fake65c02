@@ -4,19 +4,14 @@ set positional-arguments
 
 name := "fake65c02"
 
-alias make := build
-alias gmake := build
+build_dir := "build"
 
 alias b := build
 alias t := test
-alias w := watch
+#alias w := watch
 alias l := list
 alias c := clean
-
-# Use gmake on BSD family. Might need if/else tree if this doesn't work for all of them.
-# Note that FreeBSD's pkg repo version of justfile doesn't have regex support built-in.
-# You'll need to install it via cargo, unfortunately.
-make_cmd := if os() =~ ".*bsd" { "gmake" } else { "make" }
+alias dc := deep_clean
 
 # -> build
 @default: build
@@ -29,18 +24,33 @@ make_cmd := if os() =~ ".*bsd" { "gmake" } else { "make" }
 @info:
     echo {{name}} :: {{os()}} {{arch()}}
 
+# Perform setup for meson project
+@setup buildtype:
+    if [ ! -f "{{build_dir}}/build.ninja" ]; then meson setup --buildtype "{{buildtype}}" "{{build_dir}}"; fi
+
 # Build project
-@build:
-    {{make_cmd}} && {{make_cmd}} -C roms
+@build buildtype='release': (setup buildtype)
+    ninja -C "{{build_dir}}"
+
+@tidy:
+    ninja -C "{{build_dir}}" clang-tidy
+
+@format:
+    ninja -C "{{build_dir}}" clang-format
 
 # Clean project
 @clean:
-    {{make_cmd}} clean
+    ninja -C "{{build_dir}}" clean
+
+# Deep clean project, forcing fresh `meson setup`
+deep_clean:
+    rm -rf "{{build_dir}}"
 
 # Run tests for project
 @test:
-    {{make_cmd}} test
+    ninja -C "{{build_dir}}" test
 
+# TODO: Path changed for Meson. Needs adjustment.
 # Watch our project, building and running cmd on updates
-@watch cmd="./fake65c02 roms/tests/test_65c02.bin":
-    watchexec -c -r -w main.c -w main.h -w fake65c02.c -w fake65c02.h -w roms "just build && {{cmd}}"
+#@watch cmd="./fake65c02 roms/tests/test_65c02.bin":
+#    watchexec -c -r -w main.c -w main.h -w fake65c02.c -w fake65c02.h -w roms "just build && {{cmd}}"

@@ -19,7 +19,7 @@ for i, a in pairs(args) do
     elseif a == [[--version]] or a == [[-v]] then
         print(string.format("fake65c02.lua v%s :: %s", FAKE65C02_VERSION, jit.version))
         os.exit(0)
-    elseif a == [[--table_banks]] then
+    elseif a == [[--table_banks]] or a == [[-t]] then
         table_banks = true
     else
         rom_files[#rom_files+1] = a
@@ -35,7 +35,16 @@ end
 
 local ffi = require("ffi")
 
-local fake65c02 = ffi.load('./libfake65c02.so')
+-- Try loading it from LD_LIBRARY_PATH
+local success, fake65c02 = pcall(function() return ffi.load('fake65c02') end)
+if not success then
+    -- Try in working directory if LD_LIBRARY_PATH doesn't have it
+    success, fake65c02 = pcall(function() return ffi.load('./libfake65c02.so') end)
+end
+if not success then
+    print("Could not find fake65c02!")
+    os.exit(1)
+end
 
 -- [[ Definitions for our fake65c02.so ]]
 

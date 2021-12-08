@@ -1,5 +1,13 @@
 Checks: |
-  *,
+  bugprone-*,
+  clang-analyzer-core.*,
+  clang-analyzer-nullability.*,
+  clang-analyzer-unix.*,
+  llvm-*,
+  modernize-*,
+  performance-*,
+  portability-*,
+  readability-*,
 
 #WarningsAsErrors: '*'
 WarningsAsErrors: |

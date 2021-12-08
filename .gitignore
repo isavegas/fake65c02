@@ -1,11 +1,8 @@
-fake6502
-fake65c02
-
-*.so
-*.o
-
 roms/**/*.bin
 roms/**/*.lst
+
+.env
+.envrc
 
 build/
 .ninja_log

@@ -1,18 +1,18 @@
 SHELL= /bin/sh
 
-CC = clang
-CFLAGS ?= -march=native -Werror=implicit-function-declaration -DWRITABLE_VECTORS -DUNDOCUMENTED -fPIC
-RELEASE_CFLAGS ?= -O2 -flto=thin
-export DEBUG ?=
-DEBUG_CFLAGS ?= -g -O0 -D DEBUG
-LDFLAGS ?= -fuse-ld=lld -flto=thin
-CLANG_TIDY ?= clang-tidy
-TIDY_FLAGS ?= -checks='*'
-CLANG_FORMAT ?= clang-format
-FORMAT_FLAGS ?= --style=llvm
+# Kept specifically for use with compilers not supported by meson
 
-ifdef FIX
-	TIDY_FLAGS += -fix-errors
+CC = clang
+CFLAGS ?= -march=native -Werror=implicit-function-declaration -DWRITABLE_VECTORS -DUNDOCUMENTED -fPIC -Iinclude
+export DEBUG ?=
+RELEASE_CFLAGS ?= -O2
+DEBUG_CFLAGS ?= -g -O0 -DDEBUG
+LDFLAGS ?= -fuse-ld=lld
+
+# If CC contains clang
+ifneq (,$(findstring clang,$(CC)))
+	RELEASE_CFLAGS += -flto=thin
+	LDFLAGS += -flto=thin
 endif
 
 ifdef DEBUG
@@ -21,21 +21,28 @@ else
   CFLAGS += ${RELEASE_CFLAGS}
 endif
 
-OBJS = main.o fake65c02.o
+OBJS = src/main.o src/fake65c02.o
 SUBPROJS = roms
 
-OUT_BINS = fake65c02
-OUT_LIBS = libfake65c02.so
+OUT_BINS = build/fake65c02
+OUT_LIBS = build/libfake65c02.so build/libfake65c02.a
 
 .PHONY: all ${SUBPROJS}
 
 all: ${OUT_BINS} ${OUT_LIBS} ${SUBPROJS}
 
-fake65c02: main.o fake65c02.o
+build/fake65c02: src/main.o src/fake65c02.o
+	@mkdir -p $(@D)
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $^
 
-libfake65c02.so: fake65c02.o
+build/libfake65c02.so: src/fake65c02.o
+	@mkdir -p $(@D)
 	${CC} ${CFLAGS} -shared ${LDFLAGS} -o $@ $^
+
+build/libfake65c02.a: src/fake65c02.o
+	@mkdir -p $(@D)
+	#${CC} ${CFLAGS} ${LDFLAGS} -o $@ $^
+	ar -rcs $@ $^
 
 # We need to prevent this from catching other targets
 ${filter %.o,${OBJS}}: %.o: %.c
@@ -47,14 +54,5 @@ ${SUBPROJS}:
 test: all roms
 	${MAKE} -C roms test
 
-format:
-	${CLANG_FORMAT} ${FORMAT_FLAGS} -i main.c
-
-tidy:
-	${CLANG_TIDY} ${TIDY_FLAGS} main.c -- ${CFLAGS}
-
-tidy_all:
-	${CLANG_TIDY} ${TIDY_FLAGS} main.c fake65c02.c -- ${CFLAGS}
-
 clean:
-	-rm -f ${OUT_BINS} ${OUT_LIBS} *.o
+	-rm -f ${OUT_BINS} ${OUT_LIBS} src/*.o
