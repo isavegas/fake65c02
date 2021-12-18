@@ -838,6 +838,10 @@ static void tya(fake65c02_t *context) {
   signcalc(context, context->a);
 }
 
+static void stp(fake65c02_t *context) { context->stopped = 1; }
+
+static void wai(fake65c02_t *context) { context->waiting = 1; }
+
 // undocumented instructions
 #ifdef UNDOCUMENTED
 static void lax(fake65c02_t *context) {
@@ -942,8 +946,8 @@ static void (*optable[256])() = {
     /* 9 */ bcc, sta, nop, nop, sty, sta, stx, sax, tya, sta, txs, nop, stz, sta, stz, nop, /* 9 */
     /* A */ ldy, lda, ldx, lax, ldy, lda, ldx, lax, tay, lda, tax, nop, ldy, lda, ldx, lax, /* A */
     /* B */ bcs, lda, nop, lax, ldy, lda, ldx, lax, clv, lda, tsx, lax, ldy, lda, ldx, lax, /* B */
-    /* C */ cpy, cmp, nop, dcp, cpy, cmp, dec, dcp, iny, cmp, dex, nop, cpy, cmp, dec, dcp, /* C */
-    /* D */ bne, cmp, nop, dcp, nop, cmp, dec, dcp, cld, cmp, phx, dcp, nop, cmp, dec, dcp, /* D */
+    /* C */ cpy, cmp, nop, dcp, cpy, cmp, dec, dcp, iny, cmp, dex, wai, cpy, cmp, dec, dcp, /* C */
+    /* D */ bne, cmp, nop, dcp, nop, cmp, dec, dcp, cld, cmp, phx, stp, nop, cmp, dec, dcp, /* D */
     /* E */ cpx, sbc, nop, isb, cpx, sbc, inc, isb, inx, sbc, nop, sbc, cpx, sbc, inc, isb, /* E */
     /* F */ beq, sbc, nop, isb, nop, sbc, inc, nop, sed, sbc, plx, isb, nop, sbc, inc, isb  /* F */
     // clang-format on
@@ -972,27 +976,77 @@ static const uint32_t ticktable[256] = {
 };
 
 int nmi65c02(fake65c02_t *context) {
-  push16(context, context->pc);
-  push8(context, context->status);
-  context->status |= FLAG_INTERRUPT;
-  context->pc = (uint16_t)context->read(context, 0xFFFA) |
-                ((uint16_t)context->read(context, 0xFFFB) << 8);
-  return 1;
+  if (!context->stopped) {
+    if (context->waiting) {
+      context->waiting = 0;
+    }
+    // Only perform nmi handling if FLAG_INTERRUPT
+    // is clear. This should **NOT** do anything besides
+    // resume execution for a running `wai` instruction
+    // otherwise.
+    if ((context->status & FLAG_INTERRUPT) == 0) {
+      push16(context, context->pc);
+      push8(context, context->status);
+      context->status |= FLAG_INTERRUPT;
+      context->pc = (uint16_t)context->read(context, 0xFFFA) |
+                    ((uint16_t)context->read(context, 0xFFFB) << 8);
+    }
+    return 1;
+  }
+  return 0;
 }
 
 int irq65c02(fake65c02_t *context) {
-  push16(context, context->pc);
-  push8(context, context->status);
-  context->status |= FLAG_INTERRUPT;
-  context->pc = (uint16_t)context->read(context, 0xFFFE) |
-                ((uint16_t)context->read(context, 0xFFFF) << 8);
-  return 1;
+  if (!context->stopped) {
+    if (context->waiting) {
+      context->waiting = 0;
+    }
+    // Only perform irq handling if FLAG_INTERRUPT
+    // is clear. This should **NOT** do anything besides
+    // resume execution for a running `wai` instruction
+    // otherwise.
+    if ((context->status & FLAG_INTERRUPT) == 0) {
+      push16(context, context->pc);
+      push8(context, context->status);
+      context->status |= FLAG_INTERRUPT;
+      context->pc = (uint16_t)context->read(context, 0xFFFE) |
+                    ((uint16_t)context->read(context, 0xFFFF) << 8);
+    }
+    return 1;
+  }
+  return 0;
 }
 
 int exec(fake65c02_t *context, uint32_t tickcount) {
-  context->clockgoal += tickcount;
+  if (!context->stopped) {
+    context->clockgoal += tickcount;
+    while (context->clockticks < context->clockgoal) {
+      if (!context->stopped && !context->waiting) {
+        context->opcode = context->read(context, context->pc++);
+        context->status |= FLAG_CONSTANT;
 
-  while (context->clockticks < context->clockgoal) {
+        context->penaltyop = 0;
+        context->penaltyaddr = 0;
+
+        (*addrtable[context->opcode])(context);
+        (*optable[context->opcode])(context);
+        context->clockticks += ticktable[context->opcode];
+        if (penaltyop && penaltyaddr)
+          context->clockticks++;
+
+        context->instructions++;
+
+        if (context->hook != NULL)
+          context->hook(context);
+      }
+    }
+    return 1;
+  }
+  return 0;
+}
+
+int step65c02(fake65c02_t *context) {
+  if (!context->stopped && !context->waiting) {
     context->opcode = context->read(context, context->pc++);
     context->status |= FLAG_CONSTANT;
 
@@ -1004,32 +1058,14 @@ int exec(fake65c02_t *context, uint32_t tickcount) {
     context->clockticks += ticktable[context->opcode];
     if (penaltyop && penaltyaddr)
       context->clockticks++;
+    context->clockgoal = context->clockticks;
 
     context->instructions++;
 
     if (context->hook != NULL)
       context->hook(context);
+
+    return 1;
   }
-  return 1;
-}
-
-int step65c02(fake65c02_t *context) {
-  context->opcode = context->read(context, context->pc++);
-  context->status |= FLAG_CONSTANT;
-
-  context->penaltyop = 0;
-  context->penaltyaddr = 0;
-
-  (*addrtable[context->opcode])(context);
-  (*optable[context->opcode])(context);
-  context->clockticks += ticktable[context->opcode];
-  if (penaltyop && penaltyaddr)
-    context->clockticks++;
-  context->clockgoal = context->clockticks;
-
-  context->instructions++;
-
-  if (context->hook != NULL)
-    context->hook(context);
-  return 1;
+  return 0;
 }

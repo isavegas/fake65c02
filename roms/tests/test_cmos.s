@@ -1,7 +1,7 @@
     org $8000
 
     include ../lib.s
-    include test_65c02_strings.s
+    include strings.s
 
 ; TODO: Count errors using `err` macro
 ERROR_COUNT = $7fff
@@ -341,7 +341,6 @@ test_tsb_zp_error_:
     load_registers
     rts
 
-m_debug_message: string " => DEBUG BUILD\n"
 reset:
     ifdef DEBUG
         print_str m_debug_message

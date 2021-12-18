@@ -5,6 +5,7 @@ SERIAL = $8002
 PRINT_PTR = $BA
 
 IO_HALT = $01
+IO_IRQ_REQ = $fc
 IO_HOOK_CALL = $fd
 IO_HOOK_FUNC = $fe
 IO_HOOK = $ff
@@ -28,6 +29,15 @@ incr_print_ptr_
     jmp print_
 print_done_:
     rts               ; Return from subroutine
+
+    macro io_out,out
+        lda \out
+        sta IO_OUT
+    endm
+    macro io_cmd,cmd
+        lda #\cmd
+        sta IO_CMD
+    endm
 
     macro print_char,char
         lda #\char

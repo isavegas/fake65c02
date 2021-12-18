@@ -31,6 +31,9 @@ struct fake65c02 {
 
   uint16_t ea;
 
+  uint8_t stopped;
+  uint8_t waiting;
+
   // internal
   uint8_t status;
   uint8_t opcode;

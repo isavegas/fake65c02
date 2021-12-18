@@ -13,6 +13,7 @@
 #define IO_HOOK 0xff
 #define IO_HOOK_FUNC 0xfe
 #define IO_HOOK_CALL 0xfd
+#define IO_IRQ_REQ 0xfc
 
 // Opcodes
 #define OP_NOOP 0xea
@@ -52,6 +53,8 @@ struct machine {
   uint8_t serial_written;
   uint8_t exit_code;
   uint8_t debug_steps;
+  uint8_t irq_request;
+  uint8_t irq_delay;
 
   uint8_t ram[RAM_SIZE];
   uint8_t rom[ROM_SIZE];
@@ -119,8 +122,11 @@ void write_memory(fake65c02_t *context, uint16_t address, uint8_t value) {
       machine->state |= HALTED;
       machine->exit_code = machine->io_out;
       break;
+    case IO_IRQ_REQ:
+      machine->irq_request = 1;
+      machine->irq_delay = machine->io_out;
+      break;
     }
-    break;
   default:
     if (address >= RAM_LOCATION && address < RAM_LOCATION + RAM_SIZE) {
       ram[(unsigned int)(address - RAM_LOCATION)] = value;
@@ -221,7 +227,14 @@ int main(int argc, char *argv[]) {
       m->context->write = write_memory;
       m->context->hook = hook;
       reset65c02(m->context);
-      while ((m->state & HALTED) == 0) {
+      while ((m->state & HALTED) == 0 && !m->context->stopped) {
+        if (m->irq_request != 0) {
+          m->irq_delay--;
+          if (m->irq_delay == 0) {
+            m->irq_request = 0;
+            irq65c02(m->context);
+          }
+        }
         step65c02(m->context);
       }
       if (m->serial_written == 1 && m->serial != '\n' &&

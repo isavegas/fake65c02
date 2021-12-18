@@ -5,6 +5,7 @@ project(
     default_options: [
         'b_lto=true',
         'b_lto_mode=thin',
+        #'b_sanitize=true',
         'c_std=c2x',
         'default_library=both',
         'strip=true',
@@ -48,10 +49,12 @@ fake65c02_static_dep = declare_dependency(
     include_directories: fake65c02_include,
 )
 
-fake65c02_binary = executable(
+fake65c02_exe = executable(
     'fake65c02',
     dependencies: [
         fake65c02_static_dep
     ],
     sources: [ 'src/main.c' ],
 )
+
+subdir('roms')

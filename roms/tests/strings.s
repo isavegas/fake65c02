@@ -1,4 +1,4 @@
-m_debug: string "DEBUG\n"
+m_debug_message: string " => DEBUG BUILD\n"
 
 m_exit_error: string "Error running tests\n"
 
@@ -42,3 +42,9 @@ m_tsb_abs_success: string "TSB abs pass\n"
 m_tsb_abs_error: string "TSB abs fail\n"
 m_tsb_zp_success: string "TSB zp pass\n"
 m_tsb_zp_error: string "TSB zp fail\n"
+
+m_wai_attempt: string "WAI attempt\n"
+m_wai_success: string "WAI success\n"
+m_wai_error: string "WAI fail\n"
+m_stp_attempt: string "STP attempt\n"
+m_stp_error: string "STP fail\n"
