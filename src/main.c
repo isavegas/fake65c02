@@ -3,24 +3,10 @@
 // Courtesy of Chris. Thanks!
 #define MIN(a, b) ((a) < (b)) ? (a) : (b)
 
-// Ports
-#define IO_IN 0x7fff
-#define IO_CMD 0x8000
-#define IO_OUT 0x8001
-
-// Messages
-#define IO_HALT 0x01
-#define IO_HOOK 0xff
-#define IO_HOOK_FUNC 0xfe
-#define IO_HOOK_CALL 0xfd
-#define IO_IRQ_REQ 0xfc
-
 // Opcodes
 #define OP_NOOP 0xea
 #define OP_JSR 0x20
 #define OP_RTS 0x60
-
-#define SERIAL_OUT 0x8002
 
 #define ADDRESS_SPACE 65536
 
@@ -34,9 +20,9 @@ const uint16_t ROM_LOCATION = 0x8000;
 
 #define ALIGNMENT 128
 
+// Used for implementing halt functionality
+// when stp and wai aren't available
 const uint8_t HALTED = 0b00000001;
-const uint8_t STOPPED = 0b00000010;
-const uint8_t WAITING = 0b00000100;
 
 typedef struct machine *machine_t;
 struct machine {
@@ -149,6 +135,7 @@ void write_memory(fake65c02_t *context, uint16_t address, uint8_t value) {
 #endif
   }
 }
+
 
 #define FLAG_CARRY 0x01U
 #define FLAG_ZERO 0x02U

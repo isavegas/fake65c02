@@ -39,7 +39,7 @@ local ffi = require("ffi")
 local success, fake65c02 = pcall(function() return ffi.load('fake65c02') end)
 if not success then
     -- Try in working directory if LD_LIBRARY_PATH doesn't have it
-    success, fake65c02 = pcall(function() return ffi.load('./libfake65c02.so') end)
+    success, fake65c02 = pcall(function() return ffi.load('./build/libfake65c02.so') end)
 end
 if not success then
     print("Could not find fake65c02!")
@@ -48,7 +48,7 @@ end
 
 -- [[ Definitions for our fake65c02.so ]]
 
-ffi.cdef[[
+ffi.cdef([[
 
 int printf(const char *fmt, ...);
 
@@ -100,7 +100,7 @@ int irq65c02(fake65c02_t *context);
 int nmi65c02(fake65c02_t *context);
 int exec65c02(fake65c02_t *context, uint32_t tickcount);
 
-]]
+]])
 
 local IO_IN = 0x7fff
 local IO_CMD = 0x8000
@@ -108,11 +108,12 @@ local IO_OUT = 0x8001
 local SERIAL = 0x8002
 
 local IO_HALT = 0x01
-local IO_HOOK_CALL = 0xfd
-local IO_HOOK_FUNC = 0xfe
 local IO_HOOK = 0xff
+local IO_HOOK_FUNC = 0xfe
+local IO_HOOK_CALL = 0xfd
+local IO_IRQ_REQ = 0xfc
 
---[[ Define CDATA objects for storing our memory banks]]
+--[[ Define CDATA objects for storing our memory banks ]]
 
 ffi.cdef([[
 
@@ -129,12 +130,10 @@ ffi.cdef([[
 local new_bank32
 
 if table_banks then
---    print('Using table memory banks')
     new_bank32 = function(location)
         return { memory = {}, location = location }
     end
 else
---    print('Using CDATA memory banks')
     new_bank32 = function(location)
         local bank = ffi.new("bank32_t")
         bank.location = location
@@ -150,10 +149,12 @@ function state_mt:set(addr, value)
     local ram = self.ram
     if addr >= ram.location and addr < ram.location + 0x8000 then
         ram.memory[addr - ram.location] = value
+        return
     end
     local rom = self.rom
     if addr >= rom.location and addr < rom.location + 0x8000 then
         --rom.memory[addr - rom.location] = value
+        return
     end
 end
 
@@ -168,20 +169,18 @@ function state_mt:get(addr)
     end
 end
 
-function state_mt:set16(addr, value)
+--[[function state_mt:set16(addr, value)
     self:set(addr, bit.band(value, 0x00ff))
     self:set(addr+1, bit.rshift(value, 8))
-    return 2
-end
+end]]
 
 function state_mt:set8(addr, value)
     self:set(addr, bit.band(value, 0x00ff))
-    return 1
 end
 
-function state_mt:get16(addr)
+--[[function state_mt:get16(addr)
     return bit.band(self:get(addr), 0x00ff) + bit.lshift(self:get(addr+1), 8)
-end
+end]]
 
 function state_mt:get8(addr)
     return bit.band(self:get(addr), 0x00ff)

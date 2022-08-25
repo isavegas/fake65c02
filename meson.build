@@ -5,7 +5,10 @@ project(
     default_options: [
         'b_lto=true',
         'b_lto_mode=thin',
-        #'b_sanitize=true',
+        'b_lundef=false',
+        'b_sanitize=leak',
+        'b_pie=true',
+        'b_staticpie=true',
         'c_std=c2x',
         'default_library=both',
         'strip=true',
@@ -23,7 +26,6 @@ add_project_arguments(
 # Defines for fake65c02.{c,h}
 fake65c02_defines = [
     '-DUNDOCUMENTED',
-    '-DWRITABLE_VECTORS',
 ]
 
 fake65c02_include = include_directories(
@@ -51,6 +53,9 @@ fake65c02_static_dep = declare_dependency(
 
 fake65c02_exe = executable(
     'fake65c02',
+    c_args: [
+        '-DWRITABLE_VECTORS',
+    ],
     dependencies: [
         fake65c02_static_dep
     ],
