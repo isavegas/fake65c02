@@ -246,12 +246,17 @@ end
 local function p8(i) print(string.format('%02x',i)) end
 local function p16(i) print(string.format('%04x',i)) end
 
+local log = print
+
 for _, path in pairs(rom_files) do
+  log(string.format("Running %s", path))
   local f, err = io.open(path, 'rb')
   if not err then
+    log("Creating state")
     local s = new_state()
     local i = 0x00
     if table_banks then
+      log("Table memory copy")
       local m = s.rom.memory
       local n = 0x00
       local chunk_size = 0x0400
@@ -265,10 +270,13 @@ for _, path in pairs(rom_files) do
       end
     else
       -- TODO: Handle mismatched sizes correctly. What if a rom is too small?
+      log("FFI memory copy")
       ffi.copy(s.rom.memory, f:read(0x8000), 0x8000)
     end
     f:close()
+    log("Resetting VM state")
     s:reset()
+    log("Executing ROM")
     s:run()
   else
     print(string.format("Error opening %s", err))

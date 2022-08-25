@@ -1,6 +1,14 @@
 roms/**/*.bin
 roms/**/*.lst
 
+src/fake65c02
+src/*.exe
+src/*.lib
+src/*.so
+src/*.o
+
+**/*.core
+
 .env
 .envrc
 

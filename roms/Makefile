@@ -1,7 +1,7 @@
 SHELL= /bin/sh
 
 ASM ?= vasm6502_oldstyle
-ASM_FLAGS ?= -Fbin -esc -c02 -quiet -chklabels
+ASM_FLAGS ?= -Fbin -esc -c02 -quiet -chklabels -wdc02
 DEBUG_FLAGS = -DDEBUG
 
 ifdef DEBUG
@@ -9,7 +9,7 @@ ifdef DEBUG
 	override DEBUG_FLAGS=
 endif
 
-TESTS = tests/test_stack.bin tests/test_65c02.bin
+TESTS = tests/test_stack.bin tests/test_cmos.bin tests/test_stp.bin tests/test_wai_interrupt.bin tests/test_wai_nointerrupt.bin
 TESTS_DEBUG = tests/test_hook.bin
 BENCHES = benches/fibonacci.bin
 EXAMPLES = examples/hello_world.bin
