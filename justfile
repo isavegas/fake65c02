@@ -4,7 +4,7 @@ set positional-arguments
 
 name := "fake65c02"
 
-build_dir := "build"
+build_dir := justfile_directory()+"/build"
 
 alias b := build
 alias t := test
