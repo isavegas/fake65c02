@@ -45,6 +45,12 @@ alias dc := deep_clean
 # Deep clean project, forcing fresh `meson setup`
 deep_clean:
     rm -rf "{{build_dir}}"
+    rm -f "{{justfile_directory()}}/src/fake65c02"
+    rm -f "{{justfile_directory()}}/src/**/.so"
+    rm -f "{{justfile_directory()}}/src/**/.o"
+    rm -f "{{justfile_directory()}}/src/**/*.exe"
+    rm -f "{{justfile_directory()}}/roms/**/*.bin"
+    rm -f "{{justfile_directory()}}/roms/**/*.lst"
 
 # Run tests for project
 @test:

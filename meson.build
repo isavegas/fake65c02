@@ -6,7 +6,7 @@ project(
         'b_lto=true',
         'b_lto_mode=thin',
         'b_lundef=false',
-        'b_sanitize=leak',
+        #'b_sanitize=leak',
         'b_pie=true',
         'b_staticpie=true',
         'c_std=c2x',
