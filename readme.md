@@ -110,11 +110,11 @@ Instruction   | OP        | Description
 - [X] `TSB ZP`
 
 #### WDC and Rockwell
-- [ ] `BBR ZP`
-- [ ] `BBS ZP`
-- [ ] `RMB ZP`
-- [ ] `SMB ZP`
+- [X] `BBR ZP`
+- [X] `BBS ZP`
+- [X] `RMB ZP`
+- [X] `SMB ZP`
 
 #### WDC
-- [ ] `STP`
-- [ ] `WAI`
+- [X] `STP`
+- [X] `WAI`

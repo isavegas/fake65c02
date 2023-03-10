@@ -10,4 +10,3 @@
 
 #include "fake65c02.h"
 #include "messaging.h"
-

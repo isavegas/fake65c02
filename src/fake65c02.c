@@ -72,13 +72,14 @@
 
 // Disabled defines here. We're defining these via compiler flags.
 // 6502 defines
-//#define UNDOCUMENTED //when this is defined, undocumented opcodes are handled.
+// #define UNDOCUMENTED //when this is defined, undocumented opcodes are
+// handled.
 // otherwise, they're simply treated as NOPs.
 
-//#define NES_CPU      //when this is defined, the binary-coded decimal (BCD)
-// status flag is not honored by ADC and SBC. the 2A03
-// CPU in the Nintendo Entertainment System does not
-// support BCD operation.
+// #define NES_CPU      //when this is defined, the binary-coded decimal (BCD)
+//  status flag is not honored by ADC and SBC. the 2A03
+//  CPU in the Nintendo Entertainment System does not
+//  support BCD operation.
 
 fake65c02_t *new_fake65c02(void *m) {
   fake65c02_t *c = calloc(1, sizeof(fake65c02_t));
@@ -189,8 +190,8 @@ int reset65c02(fake65c02_t *context) {
   return 1;
 }
 
-static void (*addrtable[256])();
-static void (*optable[256])();
+static void (*addrtable[256])(fake65c02_t *context);
+static void (*optable[256])(fake65c02_t *context);
 uint8_t penaltyop, penaltyaddr;
 
 // addressing mode functions, calculates effective addresses
@@ -225,6 +226,14 @@ static void rel(fake65c02_t *context) { // relative for branch ops (8-bit
     context->reladdr |= 0xFF00;
 }
 
+// specific to bbr/bbs/rmb/smb. Uses both zp and rel
+static void zpr(fake65c02_t *context) {
+  context->ea = (uint16_t)context->read(context, (uint16_t)context->pc++);
+  context->reladdr = (uint16_t)context->read(context, context->pc++);
+  if (context->reladdr & 0x80)
+    context->reladdr |= 0xFF00;
+}
+
 static void abso(fake65c02_t *context) { // absolute
   context->ea = (uint16_t)(context->read(context, context->pc)) |
                 ((uint16_t)context->read(context, context->pc + 1) << 8);
@@ -250,7 +259,7 @@ static void absx(fake65c02_t *context) { // absolute,X
 static void absy(fake65c02_t *context) { // absolute,Y
   uint16_t startpage;
   context->ea = ((uint16_t)context->read(context, context->pc) |
-                 ((uint16_t)context->read(context, context->pc + 1) << 8));
+                 ((uint16_t)context->read(context, context->pc += 1) << 8));
   startpage = context->ea & 0xFF00;
   context->ea += (uint16_t)context->y;
 
@@ -838,6 +847,34 @@ static void tya(fake65c02_t *context) {
   signcalc(context, context->a);
 }
 
+static void bbr(fake65c02_t *context) {
+  context->value = getvalue(context);
+  uint8_t bit = context->opcode >> 0x04;
+  if (((context->value >> bit) & 0x01) == 0) {
+    context->pc += context->reladdr;
+  }
+}
+
+static void bbs(fake65c02_t *context) {
+  context->value = getvalue(context);
+  uint8_t bit = (context->opcode >> 0x04) - 8;
+  if (((context->value >> bit) & 0x01) == 1) {
+    context->pc += context->reladdr;
+  }
+}
+
+static void rmb(fake65c02_t *context) {
+  context->value = getvalue(context);
+  uint8_t bit = context->opcode >> 0x04;
+  putvalue(context, context->value &= ~(0x01 << bit));
+}
+
+static void smb(fake65c02_t *context) {
+  context->value = getvalue(context);
+  uint8_t bit = (context->opcode >> 0x04) - 8;
+  putvalue(context, context->value |= 0x01 << bit);
+}
+
 static void stp(fake65c02_t *context) { context->stopped = 1; }
 
 static void wai(fake65c02_t *context) { context->waiting = 1; }
@@ -909,47 +946,47 @@ static void rra(fake65c02_t *context) {
 #define rra nop
 #endif
 
-static void (*addrtable[256])() = {
+static void (*addrtable[256])(fake65c02_t *context) = {
     // clang-format off
     /*    |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |  A  |  B |  C  |  D  |  E  |  F  |     */
-    /* 0 */ imp,  indx, imp, indx, zp,   zp,   zp,   zp,   imp,  imm,  acc, imm,  abso, abso, abso, abso, /* 0 */
-    /* 1 */ rel,  indy, imp, indy, zp,   zpx,  zpx,  zpx,  imp,  absy, imp, absy, abso, absx, absx, absx, /* 1 */
-    /* 2 */ abso, indx, imp, indx, zp,   zp,   zp,   zp,   imp,  imm,  acc, imm,  abso, abso, abso, abso, /* 2 */
-    /* 3 */ rel,  indy, imp, indy, zpx,  zpx,  zpx,  zpx,  imp,  absy, imp, absy, absx, absx, absx, absx, /* 3 */
-    /* 4 */ imp,  indx, imp, indx, zp,   zp,   zp,   zp,   imp,  imm,  acc, imm,  abso, abso, abso, abso, /* 4 */
-    /* 5 */ rel,  indy, imp, indy, zpx,  zpx,  zpx,  zpx,  imp,  absy, imp, absy, absx, absx, absx, absx, /* 5 */
-    /* 6 */ imp,  indx, imp, indx, zp,   zp,   zp,   zp,   imp,  imm,  acc, imm,  ind,  abso, abso, abso, /* 6 */
-    /* 7 */ rel,  indy, imp, indy, zpx,  zpx,  zpx,  zpx,  imp,  absy, imp, absy, indx, absx, absx, absx, /* 7 */
-    /* 8 */ rel,  indx, imm, indx, zp,   zp,   zp,   zp,   imp,  imm,  imp, imm,  abso, abso, abso, abso, /* 8 */
-    /* 9 */ rel,  indy, imp, indy, zpx,  zpx,  zpy,  zpy,  imp,  absy, imp, absy, abso, absx, absx, absy, /* 9 */
-    /* A */ imm,  indx, imm, indx, zp,   zp,   zp,   zp,   imp,  imm,  imp, imm,  abso, abso, abso, abso, /* A */
-    /* B */ rel,  indy, imp, indy, zpx,  zpx,  zpy,  zpy,  imp,  absy, imp, absy, absx, absx, absy, absy, /* B */
-    /* C */ imm,  indx, imm, indx, zp,   zp,   zp,   zp,   imp,  imm,  imp, imm,  abso, abso, abso, abso, /* C */
-    /* D */ rel,  indy, imp, indy, zpx,  zpx,  zpx,  zpx,  imp,  absy, imp, absy, absx, absx, absx, absx, /* D */
-    /* E */ imm,  indx, imm, indx, zp,   zp,   zp,   zp,   imp,  imm,  imp, imm,  abso, abso, abso, abso, /* E */
-    /* F */ rel,  indy, imp, indy, zpx,  zpx,  zpx,  zpx,  imp,  absy, imp, absy, absx, absx, absx, absx  /* F */
+    /* 0 */ imp,  indx, imp, indx, zp,   zp,   zp,   zp,   imp,  imm,  acc, imm,  abso, abso, abso,  zpr, /* 0 */
+    /* 1 */ rel,  indy, imp, indy, zp,   zpx,  zpx,  zp,   imp,  absy, imp, absy, abso, absx, absx,  zpr, /* 1 */
+    /* 2 */ abso, indx, imp, indx, zp,   zp,   zp,   zp,   imp,  imm,  acc, imm,  abso, abso, abso,  zpr, /* 2 */
+    /* 3 */ rel,  indy, imp, indy, zpx,  zpx,  zpx,  zp,   imp,  absy, imp, absy, absx, absx, absx,  zpr, /* 3 */
+    /* 4 */ imp,  indx, imp, indx, zp,   zp,   zp,   zp,   imp,  imm,  acc, imm,  abso, abso, abso,  zpr, /* 4 */
+    /* 5 */ rel,  indy, imp, indy, zpx,  zpx,  zpx,  zp,   imp,  absy, imp, absy, absx, absx, absx,  zpr, /* 5 */
+    /* 6 */ imp,  indx, imp, indx, zp,   zp,   zp,   zp,   imp,  imm,  acc, imm,  ind,  abso, abso,  zpr, /* 6 */
+    /* 7 */ rel,  indy, imp, indy, zpx,  zpx,  zpx,  zp,   imp,  absy, imp, absy, indx, absx, absx,  zpr, /* 7 */
+    /* 8 */ rel,  indx, imm, indx, zp,   zp,   zp,   zp,   imp,  imm,  imp, imm,  abso, abso, abso,  zpr, /* 8 */
+    /* 9 */ rel,  indy, imp, indy, zpx,  zpx,  zpy,  zp,   imp,  absy, imp, absy, abso, absx, absx,  zpr, /* 9 */
+    /* A */ imm,  indx, imm, indx, zp,   zp,   zp,   zp,   imp,  imm,  imp, imm,  abso, abso, abso,  zpr, /* A */
+    /* B */ rel,  indy, imp, indy, zpx,  zpx,  zpy,  zp,   imp,  absy, imp, absy, absx, absx, absy,  zpr, /* B */
+    /* C */ imm,  indx, imm, indx, zp,   zp,   zp,   zp,   imp,  imm,  imp, imm,  abso, abso, abso,  zpr, /* C */
+    /* D */ rel,  indy, imp, indy, zpx,  zpx,  zpx,  zp,   imp,  absy, imp, absy, absx, absx, absx,  zpr, /* D */
+    /* E */ imm,  indx, imm, indx, zp,   zp,   zp,   zp,   imp,  imm,  imp, imm,  abso, abso, abso,  zpr, /* E */
+    /* F */ rel,  indy, imp, indy, zpx,  zpx,  zpx,  zp,   imp,  absy, imp, absy, absx, absx, absx,  zpr  /* F */
     // clang-format on
 };
 
-static void (*optable[256])() = {
+static void (*optable[256])(fake65c02_t *context) = {
     // clang-format off
     /*    |  0 |  1 |  2 |  3 |  4 |  5 |  6 |  7 |  8 |  9 |  A |  B |  C |  D |  E |  F   |    */
-    /* 0 */ brk, ora, nop, slo, tsb, ora, asl, slo, php, ora, asl, nop, tsb, ora, asl, slo, /* 0 */
-    /* 1 */ bpl, ora, nop, slo, trb, ora, asl, slo, clc, ora, nop, slo, trb, ora, asl, slo, /* 1 */
-    /* 2 */ jsr, and, nop, rla, bit, and, rol, rla, plp, and, rol, nop, bit, and, rol, rla, /* 2 */
-    /* 3 */ bmi, and, nop, rla, bit, and, rol, rla, sec, and, nop, rla, bit, and, rol, rla, /* 3 */
-    /* 4 */ rti, eor, nop, sre, nop, eor, lsr, sre, pha, eor, lsr, nop, jmp, eor, lsr, sre, /* 4 */
-    /* 5 */ bvc, eor, nop, sre, nop, eor, lsr, sre, cli, eor, phy, sre, nop, eor, lsr, sre, /* 5 */
-    /* 6 */ rts, adc, nop, rra, stz, adc, ror, rra, pla, adc, ror, nop, jmp, adc, ror, rra, /* 6 */
-    /* 7 */ bvs, adc, nop, rra, stz, adc, ror, rra, sei, adc, ply, rra, jmp, adc, ror, rra, /* 7 */
-    /* 8 */ bra, sta, nop, sax, sty, sta, stx, sax, dey, nop, txa, nop, sty, sta, stx, sax, /* 8 */
-    /* 9 */ bcc, sta, nop, nop, sty, sta, stx, sax, tya, sta, txs, nop, stz, sta, stz, nop, /* 9 */
-    /* A */ ldy, lda, ldx, lax, ldy, lda, ldx, lax, tay, lda, tax, nop, ldy, lda, ldx, lax, /* A */
-    /* B */ bcs, lda, nop, lax, ldy, lda, ldx, lax, clv, lda, tsx, lax, ldy, lda, ldx, lax, /* B */
-    /* C */ cpy, cmp, nop, dcp, cpy, cmp, dec, dcp, iny, cmp, dex, wai, cpy, cmp, dec, dcp, /* C */
-    /* D */ bne, cmp, nop, dcp, nop, cmp, dec, dcp, cld, cmp, phx, stp, nop, cmp, dec, dcp, /* D */
-    /* E */ cpx, sbc, nop, isb, cpx, sbc, inc, isb, inx, sbc, nop, sbc, cpx, sbc, inc, isb, /* E */
-    /* F */ beq, sbc, nop, isb, nop, sbc, inc, nop, sed, sbc, plx, isb, nop, sbc, inc, isb  /* F */
+    /* 0 */ brk, ora, nop, slo, tsb, ora, asl, rmb, php, ora, asl, nop, tsb, ora, asl, bbr, /* 0 */
+    /* 1 */ bpl, ora, nop, slo, trb, ora, asl, rmb, clc, ora, nop, slo, trb, ora, asl, bbr, /* 1 */
+    /* 2 */ jsr, and, nop, rla, bit, and, rol, rmb, plp, and, rol, nop, bit, and, rol, bbr, /* 2 */
+    /* 3 */ bmi, and, nop, rla, bit, and, rol, rmb, sec, and, nop, rla, bit, and, rol, bbr, /* 3 */
+    /* 4 */ rti, eor, nop, sre, nop, eor, lsr, rmb, pha, eor, lsr, nop, jmp, eor, lsr, bbr, /* 4 */
+    /* 5 */ bvc, eor, nop, sre, nop, eor, lsr, rmb, cli, eor, phy, sre, nop, eor, lsr, bbr, /* 5 */
+    /* 6 */ rts, adc, nop, rra, stz, adc, ror, rmb, pla, adc, ror, nop, jmp, adc, ror, bbr, /* 6 */
+    /* 7 */ bvs, adc, nop, rra, stz, adc, ror, rmb, sei, adc, ply, rra, jmp, adc, ror, bbr, /* 7 */
+    /* 8 */ bra, sta, nop, sax, sty, sta, stx, smb, dey, nop, txa, nop, sty, sta, stx, bbs, /* 8 */
+    /* 9 */ bcc, sta, nop, nop, sty, sta, stx, smb, tya, sta, txs, nop, stz, sta, stz, bbs, /* 9 */
+    /* A */ ldy, lda, ldx, lax, ldy, lda, ldx, smb, tay, lda, tax, nop, ldy, lda, ldx, bbs, /* A */
+    /* B */ bcs, lda, nop, lax, ldy, lda, ldx, smb, clv, lda, tsx, lax, ldy, lda, ldx, bbs, /* B */
+    /* C */ cpy, cmp, nop, dcp, cpy, cmp, dec, smb, iny, cmp, dex, wai, cpy, cmp, dec, bbs, /* C */
+    /* D */ bne, cmp, nop, dcp, nop, cmp, dec, smb, cld, cmp, phx, stp, nop, cmp, dec, bbs, /* D */
+    /* E */ cpx, sbc, nop, isb, cpx, sbc, inc, smb, inx, sbc, nop, sbc, cpx, sbc, inc, bbs, /* E */
+    /* F */ beq, sbc, nop, isb, nop, sbc, inc, smb, sed, sbc, plx, isb, nop, sbc, inc, bbs  /* F */
     // clang-format on
 };
 

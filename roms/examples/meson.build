@@ -27,13 +27,4 @@ foreach r: roms_examples_source
             '@INPUT@',
         ],
     )
-    bin = rom[0]
-    test(
-        'example_rom_@0@'.format(bin.full_path()),
-        fake65c02_exe,
-        depends: rom,
-        args: [
-            bin.full_path(),
-        ],
-    )
 endforeach

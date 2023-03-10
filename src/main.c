@@ -136,7 +136,6 @@ void write_memory(fake65c02_t *context, uint16_t address, uint8_t value) {
   }
 }
 
-
 #define FLAG_CARRY 0x01U
 #define FLAG_ZERO 0x02U
 #define FLAG_INTERRUPT 0x04U

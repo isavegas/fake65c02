@@ -50,6 +50,7 @@ test_pl\r\()_error_:
             rts
     endm
 
+; Same tests, different registers
     test_ph x
     test_pl x
 

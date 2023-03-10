@@ -1,6 +1,12 @@
 #!/usr/bin/env lua
 
-FAKE65C02_VERSION='0.1.0'
+local VM_VERSION = nil
+if jit then
+    VM_VERSION = jit.version
+else
+    VM_VERSION = __VERSION
+end
+local FAKE65C02_VERSION='0.1.0'
 
 -- [[ Handle command line arguments ]]
 -- Keeping it simple, as this is just
@@ -11,19 +17,43 @@ local args = {...}
 local rom_files = {}
 
 local table_banks = false
+local verbose = false
+local parse_args = true
 
+-- TODO: Support tar-style combined single character flags (example: -tv)
 for i, a in pairs(args) do
-    if a == [[--help]] or a == [[-h]] then
-        print("TODO: --help")
-        os.exit(0)
-    elseif a == [[--version]] or a == [[-v]] then
-        print(string.format("fake65c02.lua v%s :: %s", FAKE65C02_VERSION, jit.version))
-        os.exit(0)
-    elseif a == [[--table_banks]] or a == [[-t]] then
-        table_banks = true
+    if parse_args and string.sub(a, 1, 1) == "-" then
+        if a == [[--]] then
+            parse_args = false
+        elseif a == [[--help]] or a == [[-h]] then
+            print("Usage: fake65c02.lua [options] <roms...>")
+            print("LuaJIT is required for FFI")
+            print("Available options:")
+            print("\t--help\t\t\tPrint this help dialog")
+            print("\t--table_banks(-t)\tUse Lua tables for 65c02 memory banks")
+            print("\t--version\t\tShow version information")
+            print("\t--verbose (-v)\t\tShow debug output for VM lifecycle")
+            os.exit(0)
+        elseif a == [[--verbose]] or a == [[-v]] then
+            verbose = true
+        elseif a == [[--version]] then
+            print(string.format("fake65c02.lua v%s :: %s", FAKE65C02_VERSION, VM_VERSION))
+            os.exit(0)
+        elseif a == [[--table_banks]] or a == [[-t]] then
+            table_banks = true
+        else
+            print(string.format("Unknown argument: %s", a))
+            os.exit(1)
+        end
     else
         rom_files[#rom_files+1] = a
     end
+end
+
+local success, ffi = pcall(function() return require("ffi") end)
+if not success then
+    print("FFI not available")
+    os.exit(1)
 end
 
 if #rom_files == 0 then
@@ -32,8 +62,6 @@ if #rom_files == 0 then
 end
 
 --[[ Load fake65c02 ]]
-
-local ffi = require("ffi")
 
 -- Try loading it from LD_LIBRARY_PATH
 local success, fake65c02 = pcall(function() return ffi.load('fake65c02') end)
@@ -169,6 +197,7 @@ function state_mt:get(addr)
     end
 end
 
+-- Unused PoC
 --[[function state_mt:set16(addr, value)
     self:set(addr, bit.band(value, 0x00ff))
     self:set(addr+1, bit.rshift(value, 8))
@@ -178,6 +207,7 @@ function state_mt:set8(addr, value)
     self:set(addr, bit.band(value, 0x00ff))
 end
 
+-- Unused PoC
 --[[function state_mt:get16(addr)
     return bit.band(self:get(addr), 0x00ff) + bit.lshift(self:get(addr+1), 8)
 end]]
@@ -190,6 +220,9 @@ function state_mt:read_memory(_context, addr)
   return self:get8(addr)
 end
 
+-- [[ Handle VM IO ]]
+-- Note that we currently only support serial out, as Lua impl is mostly PoC
+-- TODO: Protocol for establishing arbitrary location/size shared memory bus?
 function state_mt:write_memory(_context, addr, value)
   if addr == IO_OUT then
     self.io_out = value
@@ -246,7 +279,13 @@ end
 local function p8(i) print(string.format('%02x',i)) end
 local function p16(i) print(string.format('%04x',i)) end
 
-local log = print
+local log = nil
+if verbose then
+    log = print
+else
+    -- NOP
+    log = function() end
+end
 
 for _, path in pairs(rom_files) do
   log(string.format("Running %s", path))
