@@ -4,7 +4,7 @@ local VM_VERSION = nil
 if jit then
     VM_VERSION = jit.version
 else
-    VM_VERSION = __VERSION
+    VM_VERSION = _VERSION
 end
 local FAKE65C02_VERSION='0.1.0'
 
