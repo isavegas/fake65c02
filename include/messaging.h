@@ -10,3 +10,4 @@
 #define IO_HOOK_FUNC 0xfe
 #define IO_HOOK_CALL 0xfd
 #define IO_IRQ_REQ 0xfc
+#define IO_CHAR_REQ 0xfb

@@ -5,6 +5,7 @@ SERIAL = $8002
 PRINT_PTR = $BA
 
 IO_HALT = $01
+IO_CHAR_REQ = $fb
 IO_IRQ_REQ = $fc
 IO_HOOK_CALL = $fd
 IO_HOOK_FUNC = $fe
@@ -30,18 +31,40 @@ incr_print_ptr_
 print_done_:
     rts               ; Return from subroutine
 
+    macro save_registers
+        pha
+        txa
+        pha
+        tya
+        pha
+    endm
+
+    macro load_registers
+        pla
+        tay
+        pla
+        tax
+        pla
+    endm
+
     macro io_out,out
+        pha
         lda \out
         sta IO_OUT
+        pla
     endm
     macro io_cmd,cmd
+        pha
         lda #\cmd
         sta IO_CMD
+        pla
     endm
 
     macro print_char,char
+        pha
         lda #\char
         sta SERIAL
+        pla
     endm
 
     macro halt,exit_code
@@ -59,23 +82,8 @@ print_done_:
         load_registers
     endm
 
-    macro save_registers
-        pha
-        txa
-        pha
-        tya
-        pha
-    endm
-
-    macro load_registers
-        pla
-        tay
-        pla
-        tax
-        pla
-    endm
-
     ifdef DEBUG
+
     macro debug,n
         pha
         lda #\n
@@ -84,23 +92,28 @@ print_done_:
         sta IO_CMD
         pla
     endm
+
     macro debug_func
         pha
         lda #IO_HOOK_FUNC
         sta IO_CMD
         pla
     endm
+
     macro debug_call
         pha
         lda #IO_HOOK_CALL
         sta IO_CMD
         pla
     endm
+
     else
+
     macro debug,n
     endm
     macro debug_func
     endm
     macro debug_call
     endm
+
     endif

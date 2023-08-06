@@ -8,6 +8,7 @@ IRQ_TRIGGERED = $0000
 irq_handler:
     lda #$01
     sta IRQ_TRIGGERED
+    print_str m_wai_success
     rti
 
 reset:
@@ -20,17 +21,16 @@ reset:
     lda #$00
     sta IRQ_TRIGGERED
 
-    ; Disable interrupts, so execution will continue
-    ; immediately
-    sei
     print_str m_wai_attempt
     io_out #10
     io_cmd IO_IRQ_REQ
+    sei
     wai
     lda IRQ_TRIGGERED
     beq wai_error
     print_str m_finish
     halt 0
+
 wai_error:
     print_str m_wai_error
     halt 1

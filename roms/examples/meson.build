@@ -1,17 +1,17 @@
 roms_examples_source = files([
     'hello_world.s',
+    'char_request.s',
 ])
 
-# Meson's support for this kind of stuff is nonexistant, at least
-# in documentation.
 foreach r: roms_examples_source
     rom = custom_target(
-        '@0@'.format(r).replace('/', '_'),
+        'build_@0@'.format(r).replace('/', '_'),
         input: r,
         output: [
             '@BASENAME@.bin',
             '@BASENAME@.lst',
         ],
+        build_by_default: true,
         command: [
             vasm,
             '-Fbin',

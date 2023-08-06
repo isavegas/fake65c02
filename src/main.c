@@ -41,6 +41,9 @@ struct machine {
   uint8_t debug_steps;
   uint8_t irq_request;
   uint8_t irq_delay;
+  uint8_t irq_wait;
+  uint8_t char_request;
+  uint8_t char_sync;
 
   uint8_t ram[RAM_SIZE];
   uint8_t rom[ROM_SIZE];
@@ -111,6 +114,10 @@ void write_memory(fake65c02_t *context, uint16_t address, uint8_t value) {
     case IO_IRQ_REQ:
       machine->irq_request = 1;
       machine->irq_delay = machine->io_out;
+      break;
+    case IO_CHAR_REQ:
+      machine->char_request = 1;
+      machine->char_sync = machine->io_out;
       break;
     }
   default:
@@ -213,6 +220,7 @@ int main(int argc, char *argv[]) {
       m->context->write = write_memory;
       m->context->hook = hook;
       reset65c02(m->context);
+      uint8_t c = '.';
       while ((m->state & HALTED) == 0 && !m->context->stopped) {
         if (m->irq_request != 0) {
           m->irq_delay--;
@@ -220,6 +228,13 @@ int main(int argc, char *argv[]) {
             m->irq_request = 0;
             irq65c02(m->context);
           }
+        }
+        if (m->char_request != 0) {
+            m->io_in = c;
+            m->char_request = 0;
+            printf("Char Request: %c\n", c);
+            c = 0;
+            irq65c02(m->context);
         }
         step65c02(m->context);
       }
