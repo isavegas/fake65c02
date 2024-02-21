@@ -1,14 +1,9 @@
     org $8000
 
     include ../lib.s
+    include test_lib.s
     include strings.s
 
-; TODO: Count errors using `err` macro
-ERROR_COUNT = $7fff
-
-    macro err,msg
-        print_str \msg
-    endm
     macro set,value
         pha
         lda \value
@@ -20,7 +15,7 @@ test_bbr:
     save_registers
     set #$FE
     bbr0 $FF, test_bbr_success_
-    err m_bbr_error
+    print_err m_bbr_error
     load_registers
     rts
 test_bbr_success_:
@@ -32,7 +27,7 @@ test_bbs:
     save_registers
     set #$01
     bbs0 $FF, test_bbs_success_
-    err m_bbs_error
+    print_err m_bbs_error
     load_registers
     rts
 test_bbs_success_:
@@ -48,7 +43,7 @@ test_rmb:
     ldx #$00
     cpx $FF
     beq test_rmb_success_
-    err m_rmb_error
+    print_err m_rmb_error
     load_registers
     rts
 test_rmb_success_:
@@ -64,7 +59,7 @@ test_smb:
     ldx #$01
     cpx $FF
     beq test_smb_success_
-    err m_smb_error
+    print_err m_smb_error
     load_registers
     rts
 test_smb_success_:
@@ -76,9 +71,7 @@ reset:
     ifdef DEBUG
         print_str m_debug_message
     endif
-
-    lda #0
-    sta ERROR_COUNT
+    init_err
 
     print_str m_start
 
@@ -88,8 +81,10 @@ reset:
     jsr test_rmb
     jsr test_smb
 
-    print_str m_finish
-    halt 0
+    branch_if_error error
+    print_str m_success
+error:
+    halt_with_error_count
 
     org $fffc
     word reset

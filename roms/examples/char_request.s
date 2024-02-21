@@ -2,35 +2,49 @@
 
     include ../lib.s
 
-RECEIVED_STR = $CC00
-CHAR_PTR = $FC
+RECEIVED_STR = $CC
 
-loop:
-    io_out #1 ; Request synchronously. No wai needed
-    io_cmd IO_CHAR_REQ
-    ; Emulator pushes character to io_in
-    lda IO_IN
-    sta (CHAR_PTR),y
-    inc CHAR_PTR
-    cmp #0
-    beq done
+message: string "echoing input:\n"
 
-    jmp loop
-done:
-    lda RECEIVED_STR
-    sta SERIAL
-    print_str RECEIVED_STR
-    lda #'\n'
-    sta SERIAL
+readline:
+    save_registers
+    ldy #0
+_readline_loop:
+    _readchar
+    cmp #3 ; End of text ASCII character
+    beq _readline_done
+    cmp #0 ; null character
+    beq _readline_done
+    cmp #10 ; newline
+    beq _readline_done
+    sta (RECEIVED_STR),y
+    iny
+    jmp _readline_loop
+_readline_done:
+    lda #'\0'
+    sta (RECEIVED_STR),y
+    load_registers
+    rts
+
+main:
+    pointer RECEIVED_STR, $0FFF
+    jsr readline
+    pointer RECEIVED_STR, $0CFF
+    jsr readline
+    print_str message
+    print_char '>'
+    pointer RECEIVED_STR, $0FFF
+    print_stri RECEIVED_STR
+    print_char '\n'
+    print_char '>'
+    pointer RECEIVED_STR, $0CFF
+    print_stri RECEIVED_STR
+    print_char '\n'
     rts
 
 reset:
     sei
-    lda #<RECEIVED_STR
-    sta CHAR_PTR
-    lda #>RECEIVED_STR
-    sta CHAR_PTR + 1
-    jsr loop
+    jsr main
     halt 0
 
     org $fffc

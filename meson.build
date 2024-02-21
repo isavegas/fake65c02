@@ -15,6 +15,11 @@ project(
     ],
 )
 
+if get_option('debug') or get_option('buildtype') == 'debug'
+    add_project_arguments('-DDEBUG', language: ['c'])
+    message('using debug define for fake65c02')
+endif
+
 add_project_arguments(
     [
         '-march=native',
@@ -32,7 +37,7 @@ fake65c02_include = include_directories(
     'include',
 )
 
-fake65c02_shared = shared_library(
+shared_library(
     'fake65c02',
     c_args: fake65c02_defines,
     include_directories: fake65c02_include,
@@ -53,9 +58,7 @@ fake65c02_static_dep = declare_dependency(
 
 fake65c02_exe = executable(
     'fake65c02',
-    c_args: [
-        '-DWRITABLE_VECTORS',
-    ],
+    c_args: [ '-DWRITABLE_VECTORS' ],
     dependencies: [
         fake65c02_static_dep
     ],

@@ -1,14 +1,8 @@
     org $8000
 
     include ../lib.s
+    include test_lib.s
     include strings.s
-
-; TODO: Count errors using `err` macro
-ERROR_COUNT = $7fff
-
-    macro err,msg
-        print_str \msg
-    endm
 
     macro test_ph,r
 test_ph\r\():
@@ -26,7 +20,7 @@ test_ph\r\():
             load_registers
             rts
 test_ph\r\()_error_:
-            err m_ph\r\()_error    ; Print failure message
+            print_err m_ph\r\()_error    ; Print failure message
             load_registers
             rts
     endm
@@ -45,7 +39,7 @@ test_pl\r\():
             rts
 test_pl\r\()_error_:
             pla                         ; Pull test data from stack, cleanup
-            err m_pl\r\()_error    ; Print failure message
+            print_err m_pl\r\()_error    ; Print failure message
             load_registers
             rts
     endm
@@ -56,6 +50,34 @@ test_pl\r\()_error_:
 
     test_ph y
     test_pl y
+
+test_inc_a:
+    save_registers
+    lda #1
+    inc a
+    cmp #2
+    bne test_inc_a_error_
+    print_str m_inc_a_success
+    load_registers
+    rts
+test_inc_a_error_:
+    print_err m_inc_a_error
+    load_registers
+    rts
+
+test_dec_a:
+    save_registers
+    lda #2
+    dec a
+    cmp #1
+    bne test_dec_a_error_
+    print_str m_dec_a_success
+    load_registers
+    rts
+test_dec_a_error_:
+    print_err m_dec_a_error
+    load_registers
+    rts
 
 test_stz_abs:
     save_registers
@@ -69,7 +91,7 @@ test_stz_abs:
     load_registers
     rts
 test_stz_abs_error_:
-    err m_stz_abs_error
+    print_err m_stz_abs_error
     load_registers
     rts
 
@@ -85,7 +107,7 @@ test_stz_zp:
     load_registers
     rts
 test_stz_zp_error_:
-    err m_stz_abs_error
+    print_err m_stz_abs_error
     load_registers
     rts
 
@@ -108,7 +130,7 @@ test_stz_abs_x:
     load_registers
     rts
 test_stz_abs_x_error_:
-    err m_stz_abs_x_error
+    print_err m_stz_abs_x_error
     load_registers
     rts
 
@@ -131,7 +153,7 @@ test_stz_zp_x:
     load_registers
     rts
 test_stz_zp_x_error_:
-    err m_stz_zp_x_error
+    print_err m_stz_zp_x_error
     load_registers
     rts
 
@@ -150,7 +172,7 @@ test_bit_abs_x:
     load_registers
     rts
 test_bit_abs_x_error_:
-    err m_bit_abs_x_error
+    print_err m_bit_abs_x_error
     load_registers
     rts
 
@@ -169,7 +191,7 @@ test_bit_zp_x:
     load_registers
     rts
 test_bit_zp_x_error_:
-    err m_bit_zp_x_error
+    print_err m_bit_zp_x_error
     load_registers
     rts
 
@@ -195,14 +217,14 @@ test_jmp_indirect_x_offset_success_:
     load_registers
     rts
 test_jmp_indirect_x_error_:
-    err m_jmp_indirect_x_error
+    print_err m_jmp_indirect_x_error
     load_registers
     rts
 
 test_bra_rel:
     save_registers
     bra test_bra_rel_success_
-    err m_bra_rel_error
+    print_err m_bra_rel_error
     load_registers
     rts
 test_bra_rel_success_:
@@ -239,7 +261,7 @@ test_trb_abs:
     load_registers
     rts
 test_trb_abs_error_:
-    err m_trb_abs_error
+    print_err m_trb_abs_error
     load_registers
     rts
 
@@ -272,7 +294,7 @@ test_trb_zp:
     load_registers
     rts
 test_trb_zp_error_:
-    err m_trb_zp_error
+    print_err m_trb_zp_error
     load_registers
     rts
 
@@ -305,7 +327,7 @@ test_tsb_abs:
     load_registers
     rts
 test_tsb_abs_error_:
-    err m_tsb_abs_error
+    print_err m_tsb_abs_error
     load_registers
     rts
 
@@ -338,7 +360,7 @@ test_tsb_zp:
     load_registers
     rts
 test_tsb_zp_error_:
-    err m_tsb_zp_error
+    print_err m_tsb_zp_error
     load_registers
     rts
 
@@ -347,10 +369,12 @@ reset:
         print_str m_debug_message
     endif
 
-    lda #0
-    sta ERROR_COUNT
+    init_err
 
     print_str m_start
+
+    jsr test_inc_a
+    jsr test_dec_a
 
     jsr test_phx
     jsr test_plx
@@ -376,8 +400,13 @@ reset:
     jsr test_tsb_abs
     jsr test_tsb_zp
 
+    branch_if_error error
     print_str m_finish
-    halt 0
+    jmp done
+error:
+    print_str m_error
+done:
+    halt_with_error_count
 
     org $fffc
     word reset

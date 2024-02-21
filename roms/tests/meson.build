@@ -3,15 +3,33 @@
 # defined in roms/meson.build.
 
 roms_test_source = files([
-    'test_stack.s',
     'test_hook.s',
     'test_cmos.s',
     'test_wdc.s',
-    'test_wai_nointerrupt.s',
-    'test_wai_interrupt.s',
+    'test_wai.s',
     'test_stp.s',
+    'test_str.s',
     'test_fail.s', # _fail.s indicates expected failure
 ])
+
+vasm_command = [
+    vasm,
+    '-Fbin',
+    '-esc',
+    '-c02',
+    '-wdc02',
+    '-quiet',
+    '-chklabels',
+    '-o',
+    '@OUTPUT0@',
+    '-L',
+    '@OUTPUT1@',
+    '@INPUT@',
+]
+
+if get_option('debug') or get_option('buildtype') == 'debug'
+    vasm_command += ['-DDEBUG']
+endif
 
 foreach r: roms_test_source
     rom = custom_target(
@@ -21,20 +39,7 @@ foreach r: roms_test_source
             '@BASENAME@.bin',
             '@BASENAME@.lst',
         ],
-        command: [
-            vasm,
-            '-Fbin',
-            '-esc',
-            '-c02',
-            '-wdc02',
-            '-quiet',
-            '-chklabels',
-            '-o',
-            '@OUTPUT0@',
-            '-L',
-            '@OUTPUT1@',
-            '@INPUT@',
-        ],
+        command: vasm_command,
     )
     bin_path = rom[0].full_path()
     test(

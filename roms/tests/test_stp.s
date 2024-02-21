@@ -3,19 +3,16 @@
     include ../lib.s
     include strings.s
 
-; TODO: Count errors using `err` macro
-ERROR_COUNT = $7fff
+stp_message: string "\nThis test succeeded if it stopped running after this message is printed\n"
 
 reset:
     ifdef DEBUG
         print_str m_debug_message
     endif
 
-    print_str m_start
-
     print_str m_stp_attempt
+    print_str stp_message
     stp
-
     print_str m_stp_error
     halt 1
 

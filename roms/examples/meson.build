@@ -3,8 +3,27 @@ roms_examples_source = files([
     'char_request.s',
 ])
 
+vasm_command = [
+    vasm,
+    '-Fbin',
+    '-esc',
+    '-c02',
+    '-wdc02',
+    '-quiet',
+    '-chklabels',
+    '-o',
+    '@OUTPUT0@',
+    '-L',
+    '@OUTPUT1@',
+    '@INPUT@',
+]
+
+if get_option('debug') or get_option('buildtype') == 'debug'
+    vasm_command += ['-DDEBUG']
+endif
+
 foreach r: roms_examples_source
-    rom = custom_target(
+    custom_target(
         'build_@0@'.format(r).replace('/', '_'),
         input: r,
         output: [
@@ -12,19 +31,6 @@ foreach r: roms_examples_source
             '@BASENAME@.lst',
         ],
         build_by_default: true,
-        command: [
-            vasm,
-            '-Fbin',
-            '-esc',
-            '-c02',
-            '-wdc02',
-            '-quiet',
-            '-chklabels',
-            '-o',
-            '@OUTPUT0@',
-            '-L',
-            '@OUTPUT1@',
-            '@INPUT@',
-        ],
+        command: vasm_command,
     )
 endforeach

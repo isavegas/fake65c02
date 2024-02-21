@@ -1,4 +1,4 @@
-## Fake65c02, an enhanced fork of [fake6502](http://rubbermallet.org/fake6502.c)
+# Fake65c02, an enhanced fork of [fake6502](http://rubbermallet.org/fake6502.c)
 
 Ben Eater's videos on using the 6502 to build a breadboard computer
 left me aching to play with a 6502 of my own. This project is being
@@ -22,7 +22,6 @@ domain to respect Mike Chambers' work and contribution to the public domain.
 
 Everything else is licensed under the [MIT license](./LICENSE).
 
-
 ## Notes on usage
 
 In order to provide a method of pairing a `fake65c02_t` instance with your
@@ -35,7 +34,7 @@ will not be using it in your `read` and `write` functions.
 
 ## Differences from [fake6502.c](http://rubbermallet.org/fake6502.c)
 
-* Added CMOS instructions [(see below)](#instructions_implemented)
+* Added CMOS instructions [(see below)](#Instructions Implemented)
 * Refactored API to use a `fake65c02_t` struct as context, ala Lua
 * Added a header file for ease of use, although the API is *not* very stable at the moment.
 
@@ -50,15 +49,16 @@ far faster than if I had had to write my own emulator from scratch.
 provided a nice list of changes for me to implement. The instructions are listed in
 a table below for ease of access when working on my fake65c02.c
 
-
-### Instructions added in the CMOS 65c02
+## Instructions added in the CMOS 65c02
 
 Instruction   | OP        | Description
 --------------|-----------|-----------------------------------------------------
-`PHX`         | `$DA`     | push X onto the hardware stack, without disturbing A.
-`PLX`         | `$FA`     | pull X  off the hardware stack, without disturbing A.
-`PHY`         | `$5A`     | push Y onto the hardware stack, without disturbing A.
-`PLY`         | `$7A`     | pull Y  off the hardware stack, without disturbing A.
+`INC A`       | `$1A`     | Increment the A register.
+`DEC A`       | `$3A`     | Decrement the A register.
+`PHX`         | `$DA`     | Push X onto the hardware stack, without disturbing A.
+`PLX`         | `$FA`     | Pull X  off the hardware stack, without disturbing A.
+`PHY`         | `$5A`     | Push Y onto the hardware stack, without disturbing A.
+`PLY`         | `$7A`     | Pull Y  off the hardware stack, without disturbing A.
 `STZ abs`     | `$9C`     | At the 16 bit addr indicated by the operand, store zero.
 `STZ abs,X`   | `$9E`     | At the 16 bit addr indicated by the operand plus X, store zero.
 `STZ ZP`      | `$64`     | At the ZP addr indicated by the operand, store zero.
@@ -72,7 +72,7 @@ Instruction   | OP        | Description
 `TSB addr`    | `$0C`     | Test & Set memory Bits with A.
 `TSB ZP`      | `$04`     | Test & Set memory Bits with A.
 
-### Instructions added in the WDC and Rockwell variants of the 65c02
+## Instructions added in the WDC and Rockwell variants of the 65c02
 
 Instruction   | OP        | Description
 --------------|-----------|-----------------------------------------------------
@@ -81,40 +81,44 @@ Instruction   | OP        | Description
 `RMB ZP`      | `$07-$77` | Reset specified Memory Bit.
 `SMB ZP`      | `$87-$F7` | Set specified Memory Bit.
 
-
-### Instructions added in the WDC variant of the 65c02
+## Instructions added in the WDC variant of the 65c02
 
 Instruction   | OP        | Description
 --------------|-----------|-----------------------------------------------------
 `STP`         | $DB       | SToP the processor until the next RST.
 `WAI`         | $CB       | WAIt.  It's like STP, but any interrupt will resume execution.
 
-### Instructions Implemented
+## Instructions Implemented
 
-#### CMOS
-- [X] `PHX`
-- [X] `PLX`
-- [X] `PHY`
-- [X] `PLY`
-- [X] `STZ abs`
-- [X] `STZ ZP`
-- [X] `STZ abs,X`
-- [X] `STZ ZP,X`
-- [X] `BIT ZP,X`
-- [X] `BIT abs,X`
-- [X] `JMP (abs,X)`
-- [X] `BRA`
-- [X] `TRB addr`
-- [X] `TRB ZP`
-- [X] `TSB addr`
-- [X] `TSB ZP`
+### CMOS
 
-#### WDC and Rockwell
-- [X] `BBR ZP`
-- [X] `BBS ZP`
-- [X] `RMB ZP`
-- [X] `SMB ZP`
+* [X] `INC A`
+* [X] `DEC A`
+* [X] `PHX`
+* [X] `PLX`
+* [X] `PHY`
+* [X] `PLY`
+* [X] `STZ abs`
+* [X] `STZ ZP`
+* [X] `STZ abs,X`
+* [X] `STZ ZP,X`
+* [X] `BIT ZP,X`
+* [X] `BIT abs,X`
+* [X] `JMP (abs,X)`
+* [X] `BRA`
+* [X] `TRB addr`
+* [X] `TRB ZP`
+* [X] `TSB addr`
+* [X] `TSB ZP`
 
-#### WDC
-- [X] `STP`
-- [X] `WAI`
+### WDC and Rockwell
+
+* [X] `BBR ZP`
+* [X] `BBS ZP`
+* [X] `RMB ZP`
+* [X] `SMB ZP`
+
+### WDC
+
+* [X] `STP`
+* [X] `WAI`

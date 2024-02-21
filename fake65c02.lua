@@ -18,7 +18,11 @@ local rom_files = {}
 
 local table_banks = false
 local verbose = false
+local writable_vectors = false
+local writable_rom = false
 local parse_args = true
+
+local io = require('io')
 
 -- TODO: Support tar-style combined single character flags (example: -tv)
 for i, a in pairs(args) do
@@ -32,6 +36,8 @@ for i, a in pairs(args) do
             print("\t--help\t\t\tPrint this help dialog")
             print("\t--table_banks(-t)\tUse Lua tables for 65c02 memory banks")
             print("\t--version\t\tShow version information")
+            print("\t--writable_rom\tWritable ROM")
+            print("\t--writable_vectors\tWritable Vectors")
             print("\t--verbose (-v)\t\tShow debug output for VM lifecycle")
             os.exit(0)
         elseif a == [[--verbose]] or a == [[-v]] then
@@ -41,6 +47,10 @@ for i, a in pairs(args) do
             os.exit(0)
         elseif a == [[--table_banks]] or a == [[-t]] then
             table_banks = true
+        elseif a == [[--writable_rom]] then
+            writable_rom = true
+        elseif a == [[--writable_vectors]] then
+            writable_vectors = true
         else
             print(string.format("Unknown argument: %s", a))
             os.exit(1)
@@ -67,7 +77,8 @@ end
 local success, fake65c02 = pcall(function() return ffi.load('fake65c02') end)
 if not success then
     -- Try in working directory if LD_LIBRARY_PATH doesn't have it
-    success, fake65c02 = pcall(function() return ffi.load('./build/libfake65c02.so') end)
+    local ext = jit.os == "OSX" and ".dylib" or "" -- LuaJIT on Darwin doesn't automatically append .dylib
+    success, fake65c02 = pcall(function() return ffi.load('./build/libfake65c02'..ext) end)
 end
 if not success then
     print("Could not find fake65c02!")
@@ -140,6 +151,8 @@ local IO_HOOK = 0xff
 local IO_HOOK_FUNC = 0xfe
 local IO_HOOK_CALL = 0xfd
 local IO_IRQ_REQ = 0xfc
+local IO_CHAR_REQ = 0xfb
+local IO_BANK_SWITCH = 0xfa
 
 --[[ Define CDATA objects for storing our memory banks ]]
 
@@ -181,7 +194,9 @@ function state_mt:set(addr, value)
     end
     local rom = self.rom
     if addr >= rom.location and addr < rom.location + 0x8000 then
-        --rom.memory[addr - rom.location] = value
+        if writable_rom or (addr >= 0xfffc and writable_vectors) then
+            rom.memory[addr - rom.location] = value
+        end
         return
     end
 end
@@ -217,6 +232,9 @@ function state_mt:get8(addr)
 end
 
 function state_mt:read_memory(_context, addr)
+  if addr == IO_IN then
+    return self.io_in
+  end
   return self:get8(addr)
 end
 
@@ -251,6 +269,15 @@ end
 function state_mt:run(n)
     local c = self.context
     while self.io_cmd ~= IO_HALT do
+      if self.io_cmd == IO_CHAR_REQ then
+        local char = io.read(1)
+        if char then
+          self.io_in = string.byte(char)
+        else
+          self.io_in = 0
+        end
+        self.io_cmd = 0
+      end
       fake65c02.step65c02(c)
     end
     --print("halted")

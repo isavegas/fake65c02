@@ -574,6 +574,13 @@ static void dec(fake65c02_t *context) {
   putvalue(context, context->result);
 }
 
+static void dea(fake65c02_t *context) {
+  context->a--;
+
+  zerocalc(context, context->a);
+  signcalc(context, context->a);
+}
+
 static void dex(fake65c02_t *context) {
   context->x--;
 
@@ -607,6 +614,13 @@ static void inc(fake65c02_t *context) {
   signcalc(context, context->result);
 
   putvalue(context, context->result);
+}
+
+static void ina(fake65c02_t *context) {
+  context->a++;
+
+  zerocalc(context, context->a);
+  signcalc(context, context->a);
 }
 
 static void inx(fake65c02_t *context) {
@@ -972,9 +986,9 @@ static void (*optable[256])(fake65c02_t *context) = {
     // clang-format off
     /*    |  0 |  1 |  2 |  3 |  4 |  5 |  6 |  7 |  8 |  9 |  A |  B |  C |  D |  E |  F   |    */
     /* 0 */ brk, ora, nop, slo, tsb, ora, asl, rmb, php, ora, asl, nop, tsb, ora, asl, bbr, /* 0 */
-    /* 1 */ bpl, ora, nop, slo, trb, ora, asl, rmb, clc, ora, nop, slo, trb, ora, asl, bbr, /* 1 */
+    /* 1 */ bpl, ora, nop, slo, trb, ora, asl, rmb, clc, ora, ina, slo, trb, ora, asl, bbr, /* 1 */
     /* 2 */ jsr, and, nop, rla, bit, and, rol, rmb, plp, and, rol, nop, bit, and, rol, bbr, /* 2 */
-    /* 3 */ bmi, and, nop, rla, bit, and, rol, rmb, sec, and, nop, rla, bit, and, rol, bbr, /* 3 */
+    /* 3 */ bmi, and, nop, rla, bit, and, rol, rmb, sec, and, dea, rla, bit, and, rol, bbr, /* 3 */
     /* 4 */ rti, eor, nop, sre, nop, eor, lsr, rmb, pha, eor, lsr, nop, jmp, eor, lsr, bbr, /* 4 */
     /* 5 */ bvc, eor, nop, sre, nop, eor, lsr, rmb, cli, eor, phy, sre, nop, eor, lsr, bbr, /* 5 */
     /* 6 */ rts, adc, nop, rra, stz, adc, ror, rmb, pla, adc, ror, nop, jmp, adc, ror, bbr, /* 6 */
