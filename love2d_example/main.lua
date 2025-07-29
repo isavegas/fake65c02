@@ -1,83 +1,45 @@
-#!/usr/bin/env lua
+local ffi = require('ffi')
+local jit = require('jit')
+local bit = require('bit')
 
-local VM_VERSION = nil
-if jit then
-  VM_VERSION = jit.version
-else
-  VM_VERSION = _VERSION
-end
-local FAKE65C02_VERSION = '0.1.0'
+local char_rows = 24
+local char_columns = 80
+local screen_width = 800
+local screen_height = 400
+local font_size
 
--- [[ Handle command line arguments ]]
--- Keeping it simple, as this is just
--- an example and alternate testing
--- tool.
+local cursor_y = 1
+local cursor_x = 1
 
-local args = { ... }
-local rom_files = {}
-
-local table_banks = false
-local verbose = false
-local parse_args = true
-
--- TODO: Support tar-style combined single character flags (example: -tv)
-for i, a in pairs(args) do
-  if parse_args and string.sub(a, 1, 1) == "-" then
-    if a == [[--]] then
-      parse_args = false
-    elseif a == [[--help]] or a == [[-h]] then
-      print("Usage: fake65c02.lua [options] <roms...>")
-      print("LuaJIT is required for FFI")
-      print("Available options:")
-      print("\t--help\t\t\tPrint this help dialog")
-      print("\t--table_banks(-t)\tUse Lua tables for 65c02 memory banks")
-      print("\t--version\t\tShow version information")
-      print("\t--verbose (-v)\t\tShow debug output for VM lifecycle")
-      os.exit(0)
-    elseif a == [[--verbose]] or a == [[-v]] then
-      verbose = true
-    elseif a == [[--version]] then
-      print(string.format("fake65c02.lua v%s :: %s", FAKE65C02_VERSION, VM_VERSION))
-      os.exit(0)
-    elseif a == [[--table_banks]] or a == [[-t]] then
-      table_banks = true
-    else
-      print(string.format("Unknown argument: %s", a))
-      os.exit(1)
-    end
-  else
-    rom_files[#rom_files + 1] = a
-  end
-end
-
-local success, ffi = pcall(function()
-  return require("ffi")
-end)
-if not success then
-  print("FFI not available")
-  os.exit(1)
-end
-
-if #rom_files == 0 then
-  print("Please supply rom file(s)")
-  os.exit(0)
-end
+local lib_paths = { './build/', './' }
 
 --[[ Load fake65c02 ]]
+
+local ext = 'so'
+if jit.os == 'Windows' then
+  ext = 'dll'
+elseif jit.os == 'OSX' then
+  ext = 'dylib'
+end
 
 -- Try loading it from LD_LIBRARY_PATH
 local success, fake65c02 = pcall(function()
   return ffi.load('fake65c02')
 end)
 if not success then
-  -- Try in working directory if LD_LIBRARY_PATH doesn't have it
-  success, fake65c02 = pcall(function()
-    return ffi.load('./build/libfake65c02.dll')
-  end)
+  for _, p in ipairs(lib_paths) do
+    -- Try in working directory if LD_LIBRARY_PATH doesn't have it
+    success, fake65c02 = pcall(function()
+      return ffi.load(p .. 'libfake65c02.' .. ext)
+    end)
+    if success then
+      break
+    end
+  end
 end
+
 if not success then
   print("Could not find fake65c02!")
-  os.exit(1)
 end
 
 -- [[ Definitions for our fake65c02.so ]]
@@ -146,6 +108,8 @@ local IO_HOOK = 0xff
 local IO_HOOK_FUNC = 0xfe
 local IO_HOOK_CALL = 0xfd
 local IO_IRQ_REQ = 0xfc
+local CHARACTER_MEMORY_LOCATION = 0xB800
+local CHARACTER_MEMORY_SIZE = 1920 -- 80 * 24
 
 --[[ Define CDATA objects for storing our memory banks ]]
 
@@ -160,19 +124,8 @@ ffi.cdef([[
 
 --[[ Initialize memory banks ]]
 
-local new_bank
-
-if table_banks then
-  new_bank = function(size, location)
-    return {
-      memory = {},
-      location = location
-    }
-  end
-else
-  new_bank = function(size, location)
-    return ffi.new("bank_t", size, { location, size })
-  end
+local new_bank = function(size, location)
+  return ffi.new("bank_t", size, { location, size })
 end
 
 -- [[ Functions to read and write to our memory banks ]]
@@ -183,6 +136,11 @@ function state_mt:set(addr, value)
   local ram = self.ram
   if addr >= ram.location and addr < ram.location + ram.size then
     ram.memory[addr - ram.location] = value
+    return
+  end
+  local char_ram = self.char_ram
+  if addr >= char_ram.location and addr < char_ram.location + char_ram.size then
+    char_ram.memory[addr - char_ram.location] = value
     return
   end
   local rom = self.rom
@@ -196,6 +154,10 @@ function state_mt:get(addr)
   local ram = self.ram
   if addr >= ram.location and addr < ram.location + ram.size then
     return ram.memory[addr - ram.location] or 0x00
+  end
+  local char_ram = self.char_ram
+  if addr >= char_ram.location and addr < char_ram.location + char_ram.size then
+    return char_ram.memory[addr - char_ram.location] or 0x00
   end
   local rom = self.rom
   if addr >= rom.location and addr < rom.location + rom.size then
@@ -274,6 +236,7 @@ function new_state()
   state.context = fake65c02.new_fake65c02(nil)
   state.ram = new_bank(0x8000, 0x0000)
   state.rom = new_bank(0x8000, 0x8000)
+  state.char_ram = new_bank(CHARACTER_MEMORY_LOCATION, CHARACTER_MEMORY_SIZE)
   state.context.read = function(context, address)
     return state:read_memory(context, address) or 0x00
   end
@@ -291,48 +254,146 @@ local function p16(i)
   print(string.format('%04x', i))
 end
 
-local log = nil
-if verbose then
-  log = print
-else
-  -- NOP
-  log = function()
+local machine
+
+function char_address(x, y)
+  return CHARACTER_MEMORY_LOCATION + (x - 1) + (y - 1) * char_rows
+end
+
+function set_char(c, x, y)
+  if not x and not y then
+    x = cursor_x
+    y = cursor_y
+  end
+  machine:set8(char_address(x, y), string.byte(c))
+end
+
+function get_char(x, y)
+  if not x and not y then
+    x = cursor_x
+    y = cursor_y
+  end
+  -- print(char_address(x,y))
+  local cbyte = machine:get8(char_address(x, y))
+  if cbyte == 0 then
+    return nil
+  else
+    return string.char(cbyte)
   end
 end
 
-for _, path in pairs(rom_files) do
-  log(string.format("Running %s", path))
-  local f, err = io.open(path, 'rb')
-  if not err then
-    log("Creating state")
-    local s = new_state()
-    if table_banks then
-      log("Table memory copy")
-      local m = s.rom.memory
-      local n = 0x00
-      local chunk_size = 0x0400
-      while n - chunk_size < 0x8000 do
-        local d = f:read(chunk_size)
-        if not d then
-          break
-        end
-        for i = 1, #d do
-          m[n + (i - 1)] = string.byte(string.sub(d, i, i))
-        end
-        n = n + #d
-      end
+function cursor_move(x, y, wrap)
+  cursor_x = cursor_x + x
+  if cursor_x > char_columns then
+    if wrap then
+      cursor_x = cursor_x - char_columns
     else
-      -- TODO: Handle mismatched sizes correctly. What if a rom is too small?
-      log("FFI memory copy")
-      ffi.copy(s.rom.memory, f:read(0x8000), 0x8000)
+      cursor_x = char_columns
     end
-    f:close()
-    log("Resetting VM state")
-    s:reset()
-    log("Executing ROM")
-    s:run()
-  else
-    print(string.format("Error opening %s", err))
-    os.exit(1)
+  end
+  if cursor_x < 1 then
+    if wrap then
+      cursor_y = cursor_y - 1
+      cursor_x = char_columns
+    else
+      cursor_x = 1
+    end
+  end
+  cursor_y = cursor_y + y
+  if cursor_y > char_rows then
+    cursor_y = char_rows
+  end
+  if cursor_y < 1 then
+    cursor_y = 1
   end
 end
+
+function carriage_return()
+  cursor_move(0, 1)
+  cursor_x = 1
+end
+
+function write_string(str, wrap)
+  for i = 1, #str do
+    set_char(string.sub(str, i, i))
+    cursor_move(1, 0, wrap)
+  end
+end
+
+function love.load()
+  love.window.setMode(screen_width, screen_height, {
+    resizable = false
+  })
+  love.window.setTitle("Character Grid")
+  font_size = screen_height / char_rows
+  cursor_x = 1
+  cursor_y = 1
+  machine = new_state()
+  local rom_file = 'hello_worldf.bin'
+  local f, err = io.open(rom_file, 'rb')
+  if f then
+    ffi.copy(machine.rom.memory, f:read(0x8000), 0x8000)
+    f:close()
+  else
+    cursor_x = 1
+    cursor_y = 1
+    write_string('Unable to load '..rom_file, true)
+    machine.io_cmd = IO_HALT
+    carriage_return()
+    write_string(err)
+  end
+  -- machine:run()
+  -- write_string('test')
+end
+
+local timer = 0
+local rate = .001
+function love.update(dt)
+  if timer > rate then
+    if machine.io_cmd ~= IO_HALT then
+      machine:step()
+      if machine.io_cmd == IO_HALT then
+        write_string('halted')
+        print('halted')
+      end
+    end
+    timer = timer - rate
+  else
+    timer = timer + dt
+  end
+end
+
+function love.draw()
+  love.graphics.clear(0, 0, 0)
+  for x = 1, char_rows do
+    for y = 1, char_columns do
+      local char = get_char(x, y)
+      if char then
+        love.graphics.print(char, (x - 1) * (screen_width / char_columns),
+          (y * (screen_height / char_rows)) - font_size)
+      end
+    end
+  end
+end
+
+function love.keypressed(key)
+  if key == "escape" then
+    love.event.quit()
+    --[[
+    elseif key == "up" then
+        cursor_y = cursor_y - 1
+    elseif key == "down" then
+        cursor_y = cursor_y + 1
+    elseif key == "left" then
+        cursor_x = cursor_x - 1
+    elseif key == "right" then
+        cursor_x = cursor_x + 1
+    else
+        charGrid[cursor_y][cursor_x] = key
+    ]]
+  end
+end
+
+--[[function love.keyreleased(key)
+    -- Handle key releases here (if needed)
+end]]

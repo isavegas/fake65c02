@@ -4,7 +4,7 @@ roms_examples_source = files([
 ])
 
 foreach r: roms_examples_source
-    rom = custom_target(
+    custom_target(
         'build_@0@'.format(r).replace('/', '_'),
         input: r,
         output: [
