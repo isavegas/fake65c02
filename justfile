@@ -18,19 +18,15 @@ alias dc := deep_clean
 # -> build
 @default: build
 
-# List all just targets
 @list:
     just --list --unsorted --list-heading "$(printf 'Targets for {{name}}::\n\r')"
 
-# Show platform info
 @info:
     echo {{name}} :: {{os()}} {{arch()}}
 
-# Perform setup for meson project
 @setup buildtype:
     if [ ! -f "{{build_dir}}/build.ninja" ]; then meson setup --buildtype "{{buildtype}}" "{{build_dir}}"; fi
 
-# Build project
 @build buildtype='release': (setup buildtype)
     ninja -C "{{build_dir}}"
 
@@ -40,7 +36,6 @@ alias dc := deep_clean
 @format:
     ninja -C "{{build_dir}}" clang-format
 
-# Clean project
 @clean:
     ninja -C "{{build_dir}}" clean
 
@@ -54,18 +49,12 @@ deep_clean:
     rm -f "{{justfile_directory()}}/roms/**/*.bin"
     rm -f "{{justfile_directory()}}/roms/**/*.lst"
 
-# Run tests for project
 @test:
     ninja -C "{{build_dir}}" test
 
 @setup_love:
     if [ ! -f "{{love_dir}}/hello_world.bin" ]; then ln -sf "{{build_dir}}/roms/examples/hello_world.bin" "{{love_dir}}/"; fi
-    if [ ! -f "{{love_dir}}/hello_world.bin" ]; then ln -sf "{{build_dir}}/libfake65c02.{{shared_ext}}" "{{love_dir}}/"; fi
+    if [ ! -f "{{love_dir}}/libfake65c02.{{shared_ext}}" ]; then ln -sf "{{build_dir}}/libfake65c02.{{shared_ext}}" "{{love_dir}}/"; fi
 
 @love: setup_love
     pushd "{{love_dir}}" && love "{{love_dir}}"
-
-# TODO: Path changed for Meson. Needs adjustment.
-# Watch our project, building and running cmd on updates
-#@watch cmd="./fake65c02 roms/tests/test_65c02.bin":
-#    watchexec -c -r -w main.c -w main.h -w fake65c02.c -w fake65c02.h -w roms "just build && {{cmd}}"
