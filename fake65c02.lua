@@ -328,7 +328,7 @@ end
 for _, path in pairs(rom_files) do
   log(string.format("Running %s", path))
   local f, err = io.open(path, 'rb')
-  if not err then
+  if f and not err then
     log("Creating state")
     local s = new_state()
     if table_banks then
