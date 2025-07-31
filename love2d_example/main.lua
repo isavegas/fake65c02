@@ -11,7 +11,11 @@ local font_size
 local cursor_y = 1
 local cursor_x = 1
 
-local lib_paths = { './build/', './bilddir/', './' }
+local lib_paths = {
+  --'../build/',
+  --'../builddir/',
+  './',
+}
 
 --[[ Load fake65c02 ]]
 
@@ -20,10 +24,10 @@ local success, fake65c02 = pcall(function()
   return ffi.load('fake65c02')
 end)
 if not success then
-    local ext = jit.os == "OSX" and ".dylib" or "" -- LuaJIT on Darwin doesn't automatically append .dylib
-    for _, p in ipairs(lib_paths) do
+  local ext = jit.os == "OSX" and ".dylib" or ""   -- LuaJIT on Darwin doesn't automatically append .dylib
+  for _, p in ipairs(lib_paths) do
     -- Try in working directory if LD_LIBRARY_PATH doesn't have it
-      success, fake65c02 = pcall(function()
+    success, fake65c02 = pcall(function()
       return ffi.load(p .. 'libfake65c02' .. ext)
     end)
     if success then
@@ -220,7 +224,7 @@ function state_mt:run(n)
   -- print("halted")
 end
 
-function new_state()
+local function new_state()
   local state = {
     io_out = 0,
     io_cmd = 0,
@@ -252,11 +256,11 @@ end
 
 local machine
 
-function char_address(x, y)
+local function char_address(x, y)
   return CHARACTER_MEMORY_LOCATION + (x - 1) + (y - 1) * char_rows
 end
 
-function set_char(c, x, y)
+local function set_char(c, x, y)
   if not x and not y then
     x = cursor_x
     y = cursor_y
@@ -264,7 +268,7 @@ function set_char(c, x, y)
   machine:set8(char_address(x, y), string.byte(c))
 end
 
-function get_char(x, y)
+local function get_char(x, y)
   if not x and not y then
     x = cursor_x
     y = cursor_y
@@ -278,7 +282,7 @@ function get_char(x, y)
   end
 end
 
-function cursor_move(x, y, wrap)
+local function cursor_move(x, y, wrap)
   cursor_x = cursor_x + x
   if cursor_x > char_columns then
     if wrap then
@@ -304,12 +308,12 @@ function cursor_move(x, y, wrap)
   end
 end
 
-function carriage_return()
+local function carriage_return()
   cursor_move(0, 1)
   cursor_x = 1
 end
 
-function write_string(str, wrap)
+local function write_string(str, wrap)
   for i = 1, #str do
     set_char(string.sub(str, i, i))
     cursor_move(1, 0, wrap)
@@ -333,7 +337,7 @@ function love.load()
   else
     cursor_x = 1
     cursor_y = 1
-    write_string('Unable to load '..rom_file, true)
+    write_string('Unable to load ' .. rom_file, true)
     machine.io_cmd = IO_HALT
     carriage_return()
     write_string(err)
@@ -352,6 +356,8 @@ function love.update(dt)
         write_string('halted')
         print('halted')
       end
+    else
+      love.window.setTitle("Halted")
     end
     timer = timer - rate
   else

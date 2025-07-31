@@ -287,7 +287,7 @@ function state_mt:run(n)
     --print("halted")
 end
 
-function new_state()
+local function new_state()
   local state = {
     io_out = 0,
     io_cmd = 0,
@@ -347,7 +347,6 @@ for _, path in pairs(rom_files) do
         n = n + #d
       end
     else
-      -- TODO: Handle mismatched sizes correctly. What if a rom is too small?
       log("FFI memory copy")
       ffi.copy(s.rom.memory, f:read(0x8000), 0x8000)
     end
