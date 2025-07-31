@@ -43,7 +43,7 @@ ca_rom = custom_target(
 
 cc_rom = custom_target(
     'build_cc_rom',
-    input: ['fake65c02.cfg', cc_objects, 'fake65c02.lib'],
+    input: ['fake65c02.cfg', cc_objects],
     output: [ 'rom.bin' ],
     build_by_default: true,
     command: [

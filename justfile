@@ -4,7 +4,9 @@ set positional-arguments
 
 name := "fake65c02"
 
-build_dir := justfile_directory()+"/build"
+build_dir := justfile_directory()+"/builddir"
+love_dir := justfile_directory()+"/love2d_example"
+shared_ext := if os() == "windows" { "dll" } else if os() == "macos" { "dylib" } else { "so" }
 
 alias b := build
 alias t := test
@@ -55,6 +57,13 @@ deep_clean:
 # Run tests for project
 @test:
     ninja -C "{{build_dir}}" test
+
+@setup_love:
+    if [ ! -f "{{love_dir}}/hello_world.bin" ]; then ln -sf "{{build_dir}}/roms/examples/hello_world.bin" "{{love_dir}}/"; fi
+    if [ ! -f "{{love_dir}}/hello_world.bin" ]; then ln -sf "{{build_dir}}/libfake65c02.{{shared_ext}}" "{{love_dir}}/"; fi
+
+@love: setup_love
+    pushd "{{love_dir}}" && love "{{love_dir}}"
 
 # TODO: Path changed for Meson. Needs adjustment.
 # Watch our project, building and running cmd on updates

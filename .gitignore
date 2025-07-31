@@ -13,4 +13,5 @@ src/*.o
 .envrc
 
 build/
+builddir/
 .ninja_log

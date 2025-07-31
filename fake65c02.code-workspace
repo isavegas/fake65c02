@@ -3,5 +3,13 @@
 		{
 			"path": "."
 		}
-	]
+	],
+	"extensions": {
+		"recommendations": [
+			"sumneko.lua",
+			"gruntfuggly.todo-tree",
+			"mesonbuild.mesonbuild",
+			"llvm-vs-code-extensions.vscode-clangd"
+		]
+	}
 }

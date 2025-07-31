@@ -11,26 +11,20 @@ local font_size
 local cursor_y = 1
 local cursor_x = 1
 
-local lib_paths = { './build/', './' }
+local lib_paths = { './build/', './bilddir/', './' }
 
 --[[ Load fake65c02 ]]
-
-local ext = 'so'
-if jit.os == 'Windows' then
-  ext = 'dll'
-elseif jit.os == 'OSX' then
-  ext = 'dylib'
-end
 
 -- Try loading it from LD_LIBRARY_PATH
 local success, fake65c02 = pcall(function()
   return ffi.load('fake65c02')
 end)
 if not success then
-  for _, p in ipairs(lib_paths) do
+    local ext = jit.os == "OSX" and ".dylib" or "" -- LuaJIT on Darwin doesn't automatically append .dylib
+    for _, p in ipairs(lib_paths) do
     -- Try in working directory if LD_LIBRARY_PATH doesn't have it
-    success, fake65c02 = pcall(function()
-      return ffi.load(p .. 'libfake65c02.' .. ext)
+      success, fake65c02 = pcall(function()
+      return ffi.load(p .. 'libfake65c02' .. ext)
     end)
     if success then
       break
@@ -40,6 +34,8 @@ end
 
 if not success then
   print("Could not find fake65c02!")
+  -- TODO: Show error screen?
+  os.exit(1)
 end
 
 -- [[ Definitions for our fake65c02.so ]]
