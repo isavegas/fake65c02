@@ -1,13 +1,15 @@
-roms/**/*.bin
-roms/**/*.lst
+*.lst
+*.exe
+*.lib
+*.so
+*.o
+*.love
+*.bin
+*.dll
+*.so
+*.dylib
 
-src/fake65c02
-src/*.exe
-src/*.lib
-src/*.so
-src/*.o
-
-**/*.core
+*.core
 
 .env
 .envrc
