@@ -217,19 +217,27 @@ void hook(fake65c02_t *context) {
 
 #define BUFFER_SIZE 4096
 size_t load_bank(uint8_t *bank, char *path, unsigned int bank_size) {
-  FILE *fp = fopen(path, "rbe");
+  #ifdef __MINGW32__
+  // MinGW32 doesn't support rbe
+  #define READ_MODE "rb"
+  #else
+  #define READ_MODE "rbe"
+  #endif
+  FILE *fp = fopen(path, READ_MODE);
+  #undef READ_MODE
   if (fp == NULL) {
+    fprintf(stderr, "Error opening file `%s`: %s\n", path, strerror(errno));
     return 0;
   }
 
   size_t i = 0;
-  for (size_t chunk = 1; chunk > 0; i += chunk) {
-    chunk = fread(&bank[i], sizeof(char), MIN(bank_size - i, BUFFER_SIZE), fp);
-    if (chunk < 0) { // error
-      return 0;
-    }
+  while (1) {
+    size_t chunk = fread(&bank[i], sizeof(char), MIN(bank_size - i, BUFFER_SIZE), fp);
+    if (chunk == 0) break;
+    i += chunk;
   }
 
+  fclose(fp);
   // return how many bytes we read so caller can double-check
   return i;
 }
