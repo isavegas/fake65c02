@@ -19,15 +19,15 @@ string_to_serial:
     stx PRINT_PTR          ; Store lower byte of string address
     sta PRINT_PTR + 1      ; Store upper byte of string address
     ldy #0
-string_to_serial_:
+.loop:
     lda (PRINT_PTR),y      ; Load relative PRINT_PTR + y
     sta SERIAL             ; Store A to serial address
-    beq serial_print_done_ ; Jump to done if value loaded into A is zero
+    beq .done ; Jump to done if value loaded into A is zero
     iny
-    bne string_to_serial_  ; If y didn't wrap, continue
+    bne .loop  ; If y didn't wrap, continue
     inc PRINT_PTR+1        ; If y wrapped, increment high byte of string pointer
-    jmp string_to_serial_  ; Loop
-serial_print_done_:
+    jmp .loop  ; Loop
+.done:
     rts
 
 ; TODO: Copy string from PRINT_PTR to video memory
@@ -40,30 +40,30 @@ string_to_video:
     stx PRINT_PTR                   ; Store lower byte of string address
     sta PRINT_PTR + 1               ; Store upper byte of string address
     ldy #0
-string_to_video_:
+.loop:
     ; Check if the cursor location is within bounds before writing to video memory
     ldx CURSOR_LOCATION+1
     cpx #>CHARACTER_MEMORY_SIZE
-    bne string_to_video_check_high_
+    bne .check_high
     ldx CURSOR_LOCATION
     cpx #<CHARACTER_MEMORY_SIZE
-    bcs video_out_of_bounds
-string_to_video_check_high_:
-    bcc string_to_video_write_:
-    bcs video_out_of_bounds
-string_to_video_write_:
+    bcs .out_of_bounds
+.check_high:
+    bcc .write
+    bcs .out_of_bounds
+.write:
     lda (PRINT_PTR),y
-    beq video_print_done_
+    beq .done
     sta CHARACTER_MEMORY_LOCATION,x ; Store char to video memory
     inc CURSOR_LOCATION
     iny
-    bne string_to_video_            ; If y didn't wrap, continue
+    bne .loop            ; If y didn't wrap, continue
     inc PRINT_PTR+1                 ; If y wrapped, increment high byte of string pointer
-    jmp string_to_video_
-video_out_of_bounds:
+    jmp .loop
+.out_of_bounds:
     ldy #1                          ; Ran out of video memory
     rts
-video_print_done_:
+.done:
     ldy #0
     rts
 
@@ -172,7 +172,7 @@ video_print_done_:
         _push_addr PRINT_PTR
         ldx #<\str
         lda #>\str
-        jsr _print
+        jsr string_to_serial
         _pull_addr PRINT_PTR
         load_registers
     endm
@@ -182,7 +182,7 @@ video_print_done_:
         _push_addr PRINT_PTR
         lda \addr + 1
         ldx \addr
-        jsr _string_to_serial
+        jsr string_to_serial
         _pull_addr PRINT_PTR
         load_registers
     endm
