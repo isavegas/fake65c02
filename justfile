@@ -56,5 +56,5 @@ deep_clean:
     if [ ! -f "{{love_dir}}/hello_world.bin" ]; then ln -sf "{{build_dir}}/roms/examples/hello_world.bin" "{{love_dir}}/"; fi
     if [ ! -f "{{love_dir}}/libfake65c02.{{shared_ext}}" ]; then ln -sf "{{build_dir}}/libfake65c02.{{shared_ext}}" "{{love_dir}}/"; fi
 
-@love: setup_love
+@love:
     pushd "{{love_dir}}" && love "{{love_dir}}"

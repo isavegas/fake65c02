@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
+#include <errno.h>
 
 // Vectors are in ROM. If ROM is writable, vectors should be
 // as well. The inverse isn't necessarily true.

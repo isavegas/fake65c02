@@ -12,8 +12,7 @@ local cursor_y = 1
 local cursor_x = 1
 
 local lib_paths = {
-  --'../build/',
-  --'../builddir/',
+  './builddir/',
   './',
 }
 
@@ -24,11 +23,19 @@ local success, fake65c02 = pcall(function()
   return ffi.load('fake65c02')
 end)
 if not success then
-  local ext = jit.os == "OSX" and ".dylib" or ""   -- LuaJIT on Darwin doesn't automatically append .dylib
-  for _, p in ipairs(lib_paths) do
+  local ext = ""
+  if jit.os == "OSX" then
+    ext = ".dylib"
+  elseif jit.os == "Linux" then
+    ext = ".so"
+  elseif jit.os == "Windows" then
+    ext = ".dll"
+  end
+  for _, prefix in ipairs(lib_paths) do
     -- Try in working directory if LD_LIBRARY_PATH doesn't have it
     success, fake65c02 = pcall(function()
-      return ffi.load(p .. 'libfake65c02' .. ext)
+      print(prefix .. 'libfake65c02' .. ext)
+      return ffi.load(prefix .. 'libfake65c02' .. ext)
     end)
     if success then
       break
@@ -257,7 +264,7 @@ end
 local machine
 
 local function char_address(x, y)
-  return CHARACTER_MEMORY_LOCATION + (x - 1) + (y - 1) * char_rows
+  return CHARACTER_MEMORY_LOCATION + (x - 1) + (y - 1) * char_columns
 end
 
 local function set_char(c, x, y)
@@ -329,7 +336,7 @@ function love.load()
   cursor_x = 1
   cursor_y = 1
   machine = new_state()
-  local rom_file = 'hello_worldf.bin'
+  local rom_file = './builddir/roms/examples/hello_world.bin'
   local f, err = io.open(rom_file, 'rb')
   if f then
     ffi.copy(machine.rom.memory, f:read(0x8000), 0x8000)
@@ -367,8 +374,8 @@ end
 
 function love.draw()
   love.graphics.clear(0, 0, 0)
-  for x = 1, char_rows do
-    for y = 1, char_columns do
+  for x = 1, char_columns do
+    for y = 1, char_rows do
       local char = get_char(x, y)
       if char then
         love.graphics.print(char, (x - 1) * (screen_width / char_columns),
