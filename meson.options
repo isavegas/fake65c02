@@ -1,0 +1,5 @@
+# Build options
+option('native_tuning', type: 'boolean', value: true)
+
+# Features
+option('gui', type: 'feature', value: 'enabled')

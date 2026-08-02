@@ -1,18 +1,18 @@
 /* fake65c02.h is released into the public domain. */
 /* Enjoy playing with your emulated 65c02.         */
-
 #ifndef FAKE65C02_H
 #define FAKE65C02_H
 
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
+
+#ifndef FAKE65C02_CONTEXT_T
+#define FAKE65C02_CONTEXT_T void
+#endif
 
 typedef struct fake65c02 fake65c02_t;
-
 struct fake65c02 {
-  void *m;
+  FAKE65C02_CONTEXT_T *context;
 
   uint8_t (*read)(fake65c02_t *ctx, uint16_t address);
   void (*write)(fake65c02_t *ctx, uint16_t address, uint8_t value);
@@ -33,8 +33,11 @@ struct fake65c02 {
 
   uint8_t stopped;
   uint8_t waiting;
+  
+  uint8_t nes_mode; // Binary-coded decimal is not supported on the NES
+  uint8_t enable_undocumented;
 
-  // internal
+// internal
   uint8_t status;
   uint8_t opcode;
   uint8_t oldstatus;
@@ -50,13 +53,13 @@ struct fake65c02 {
   uint32_t clockgoal;
 };
 
-fake65c02_t *new_fake65c02(void *m);
-void free_fake65c02(fake65c02_t *context);
+fake65c02_t *new_fake65c02(void *context);
+void free_fake65c02(fake65c02_t *cpu);
 
-int reset65c02(fake65c02_t *context);
-int step65c02(fake65c02_t *context);
-int irq65c02(fake65c02_t *context);
-int nmi65c02(fake65c02_t *context);
-int exec65c02(fake65c02_t *context, uint32_t tickcount);
+int reset65c02(fake65c02_t *cpu);
+int step65c02(fake65c02_t *cpu);
+int irq65c02(fake65c02_t *cpu);
+int nmi65c02(fake65c02_t *cpu);
+int exec65c02(fake65c02_t *cpu, uint32_t tickcount);
 
 #endif

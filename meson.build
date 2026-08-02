@@ -2,67 +2,85 @@ project(
     'fake65c02',
     'c',
     version: '0.1.0',
+    license: 'MIT',
     default_options: [
-        'b_lto=true',
-        'b_lto_mode=thin',
-        'b_lundef=false',
-        #'b_sanitize=leak',
-        'b_pie=true',
-        'b_staticpie=true',
-        'c_std=c2x',
+        'c_std=c23',
         'default_library=both',
         'strip=true',
+        'native_tuning=true',
+        'gui=enabled',
     ],
 )
 
 if get_option('debug') or get_option('buildtype') == 'debug'
-    add_project_arguments('-DDEBUG', language: ['c'])
-    message('using debug define for fake65c02')
+    add_project_arguments([
+        '-DDEBUG',
+        '-O0',
+    ], language: 'c')
+else
+    add_project_arguments('-flto=true', language: 'c')
+    if get_option('native_tuning')
+        add_project_arguments(
+            [
+                '-march=native',
+                '-mtune=native',
+            ],
+            language: 'c',
+        )
+    endif
 endif
 
-add_project_arguments(
-    [
-        '-march=native',
-        '-mtune=native',
-    ],
-    language: 'c'
-)
+# Temporary fix to vcpkg's raylib installation having SUPPORT_CUSTOM_FRAME_CONTROL enabled
+if get_option('gui').enabled() and build_machine.system() == 'windows' and target_machine.system() == 'windows'
+    add_project_arguments('-DVCPKG_FIX', language: 'c')
+endif
 
-# Defines for fake65c02.{c,h}
-fake65c02_defines = [
-    '-DUNDOCUMENTED',
-]
-
-fake65c02_include = include_directories(
+includes = include_directories(
     'include',
 )
 
 shared_library(
     'fake65c02',
-    c_args: fake65c02_defines,
-    include_directories: fake65c02_include,
+    include_directories: includes,
     sources: [ 'src/fake65c02.c' ],
 )
 
 fake65c02_static = static_library(
     'fake65c02',
-    c_args: fake65c02_defines,
-    include_directories: fake65c02_include,
+    include_directories: includes,
     sources: [ 'src/fake65c02.c' ],
 )
 
 fake65c02_static_dep = declare_dependency(
     link_with: fake65c02_static,
-    include_directories: fake65c02_include,
+    include_directories: includes,
 )
 
 fake65c02_exe = executable(
     'fake65c02',
-    c_args: [ '-DWRITABLE_VECTORS' ],
     dependencies: [
-        fake65c02_static_dep
+        fake65c02_static_dep,
     ],
-    sources: [ 'src/main.c' ],
+    sources: [ 'src/main.c', 'src/machine.c', 'src/debugger.c', 'src/ppu.c' ],
 )
 
+if get_option('gui').enabled()
+    raylib_dep = dependency('raylib', version: '>=0.6.0')
+    win_subsystem = 'windows'
+    if get_option('debug') or get_option('buildtype') == 'debug'
+        win_subsystem = 'console'
+    endif
+    executable(
+        'fake65c02_gui',
+        c_args: [ '-DWRITABLE_VECTORS' ],
+        win_subsystem: win_subsystem,
+        dependencies: [
+            fake65c02_static_dep,
+            raylib_dep,
+        ],
+        sources: [ 'src/gui.c', 'src/machine.c', 'src/ppu.c' ],
+    )
+endif
+
+subdir('tests')
 subdir('roms')

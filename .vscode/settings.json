@@ -1,6 +1,0 @@
-{
-    "Lua.diagnostics.globals": [
-        "jit",
-        "love"
-    ]
-}

@@ -1,6 +1,5 @@
-IO_IN = $7fff
 IO_CMD = $8000
-IO_OUT = $8001
+IO_DATA = $8001
 SERIAL = $8002
 PRINT_PTR = $BA
 CURSOR_LOCATION = $BC
@@ -106,7 +105,7 @@ string_to_video:
     macro io_out,out
         pha
         lda \out
-        sta IO_OUT
+        sta IO_DATA
         pla
     endm
     
@@ -126,7 +125,7 @@ string_to_video:
 
     macro halt,exit_code
         lda #\exit_code
-        sta IO_OUT
+        sta IO_DATA
         lda #IO_HALT
         sta IO_CMD
     endm
@@ -190,7 +189,7 @@ string_to_video:
     macro _readchar
         io_out #1
         io_cmd IO_CHAR_REQ
-        lda IO_IN
+        lda IO_DATA
     endm
 
     ifdef DEBUG

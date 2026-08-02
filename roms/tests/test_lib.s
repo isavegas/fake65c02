@@ -20,6 +20,6 @@ ERROR_COUNT = $CF
 
     macro halt_with_error_count
         lda ERROR_COUNT
-        sta IO_OUT
+        sta IO_DATA
         io_cmd IO_HALT
     endm
