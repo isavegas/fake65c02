@@ -6,13 +6,13 @@
   ],
   "extensions": {
     "recommendations": [
-      "gruntfuggly.todo-tree",
       "mesonbuild.mesonbuild",
       "llvm-vs-code-extensions.vscode-clangd",
+      "llvm-vs-code-extensions.lldb-dap",
     ],
   },
   "settings": {
-    "C_Cpp.default.compileCommands": "c:\\Projects\\C\\fake65c02\\build/compile_commands.json",
+    "C_Cpp.default.compileCommands": "/home/kenzi/fake65c02/build/compile_commands.json",
     "C_Cpp.default.configurationProvider": "mesonbuild.mesonbuild",
     "mesonbuild.buildFolder": "build",
   },
@@ -35,16 +35,22 @@
     "version": "0.2.0",
     "configurations": [
       {
-        "name": "fake65c02.exe",
+        "name": "fake65c02",
         "type": "lldb",
         "request": "launch",
-        "program": "${workspaceFolder}/build/fake65c02.exe",
+        "program": "${workspaceFolder}/build/fake65c02",
       },
       {
-        "name": "fake65c02_gui.exe",
+        "name": "fake65c02_gui",
         "type": "lldb",
         "request": "launch",
-        "program": "${workspaceFolder}/build/fake65c02_gui.exe",
+        "program": "${workspaceFolder}/build/fake65c02_gui",
+      },
+      {
+        "name": "nob",
+        "type": "lldb",
+        "request": "launch",
+        "program": "${workspaceFolder}/nob",
       },
     ],
   },

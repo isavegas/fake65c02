@@ -72,7 +72,7 @@
 
 #include "fake65c02.h"
 
-fake65c02_t *new_fake65c02(FAKE65C02_CONTEXT_T *context) {
+fake65c02_t *new_fake65c02(void *context) {
   fake65c02_t *cpu = calloc(1, sizeof(fake65c02_t));
   cpu->context = context;
   return cpu;
@@ -187,9 +187,9 @@ static void (*optable[256])(fake65c02_t *cpu);
 uint8_t penaltyop, penaltyaddr;
 
 // addressing mode functions, calculates effective addresses
-static void imp(fake65c02_t *cpu) {} // implied
+static void imp(fake65c02_t *cpu) { (void)cpu; } // implied
 
-static void acc(fake65c02_t *cpu) {} // accumulator
+static void acc(fake65c02_t *cpu) { (void)cpu; } // accumulator
 
 static void imm(fake65c02_t *cpu) { // immediate
   cpu->ea = cpu->pc++;

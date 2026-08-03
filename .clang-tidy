@@ -3,7 +3,6 @@ Checks: |
   clang-analyzer-core.*,
   clang-analyzer-nullability.*,
   clang-analyzer-unix.*,
-  modernize-*,
   performance-*,
   portability-*,
 

@@ -71,7 +71,7 @@ int render_background(ppu_t *ppu) {
   return 1;
 }
 
-int render_sprites(ppu_t *ppu) { return 0; }
+int render_sprites(ppu_t *ppu) { (void)ppu; return 0; }
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 int plot_ppu(ppu_t *ppu, unsigned int x, unsigned int y,
@@ -93,7 +93,7 @@ int plot_ppu(ppu_t *ppu, unsigned int x, unsigned int y,
     color = grayscale_palette[color_index % 4];
   }
   if (ppu->framebuffer == NULL) {
-    printf("[plot_ppu] No framebuffer present!\n");
+    printf("[plot_ppu] No framebuffer present! Scanline %i\n", ppu->scanline);
     return 0;
   }
   ppu->framebuffer[(y * SCANLINE_DOTS) + x] = color;

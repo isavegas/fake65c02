@@ -4,13 +4,15 @@ project(
     version: '0.1.0',
     license: 'MIT',
     default_options: [
-        'c_std=c23',
+        'c_std=c11',
         'default_library=both',
         'strip=true',
         'native_tuning=true',
         'gui=enabled',
     ],
 )
+
+add_project_arguments(['-D_POSIX_C_SOURCE=200809L'], language: 'c')
 
 if get_option('debug') or get_option('buildtype') == 'debug'
     add_project_arguments([

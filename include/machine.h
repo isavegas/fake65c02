@@ -53,11 +53,10 @@ typedef enum {
   interrupt_nmi,
 } interrupt_t;
 
-typedef struct machine machine_t;
-#define FAKE65C02_CONTEXT_T machine_t
 #include "fake65c02.h"
 #include "ppu.h"
 
+typedef struct machine machine_t;
 struct machine {
   fake65c02_t *cpu;
   ppu_t *ppu;
@@ -92,6 +91,7 @@ uint8_t read_memory(machine_t *machine, uint16_t address);
 void write_memory(machine_t *machine, uint16_t address, uint8_t value);
 
 size_t load_rom(machine_t *machine, char *path);
+void unload_rom(machine_t* machine);
 
 int step_machine(machine_t *machine);
 void hook_machine(machine_t *machine);
@@ -100,6 +100,5 @@ void interrupt_machine(machine_t* machine, interrupt_t interrupt);
 
 machine_t* new_machine();
 void reset_machine(machine_t* machine);
-void free_machine(machine_t* machine);
 
 #endif

@@ -6,14 +6,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#ifndef FAKE65C02_CONTEXT_T
-#define FAKE65C02_CONTEXT_T void
-#endif
-
 typedef struct fake65c02 fake65c02_t;
 struct fake65c02 {
-  FAKE65C02_CONTEXT_T *context;
-
+  void* context;
+  
   uint8_t (*read)(fake65c02_t *ctx, uint16_t address);
   void (*write)(fake65c02_t *ctx, uint16_t address, uint8_t value);
   void (*hook)(fake65c02_t *ctx);

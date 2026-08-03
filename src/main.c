@@ -1,5 +1,6 @@
 // Vectors are in ROM. If ROM is writable, vectors should be
 // as well. The inverse isn't necessarily true.
+#include "fake65c02.h"
 #ifdef WRITABLE_ROM
 #define WRITABLE_VECTORS
 #endif
@@ -35,11 +36,15 @@ int main(int argc, char *argv[]) {
 #ifdef DEBUG
     printf("Running %s\n", file_name);
 #endif
-    machine_t* machine = new_machine();
-    if (load_rom(machine, file_name)) {
-      reset_machine(machine);
-      machine->state.serial_enabled = 1;
-      machine->state.cmd_enabled = 1;
+    machine_t machine = {0};
+    fake65c02_t cpu = {0};
+    ppu_t ppu = {0};
+    machine.cpu = &cpu;
+    machine.ppu = &ppu;
+    reset_machine(&machine);
+    if (load_rom(&machine, file_name)) {
+      machine.state.serial_enabled = 1;
+      machine.state.cmd_enabled = 1;
 /*
 #ifdef DEBUG
       hook_machine(machine);
@@ -47,32 +52,32 @@ int main(int argc, char *argv[]) {
 */
       uint8_t requested_character = 0;
       uint8_t unfinished_output = 0;
-      while (!machine->state.cpu_halted) {
-        if (machine->irq_request != 0) {
-          machine->irq_delay--;
-          if (machine->irq_delay == 0) {
-            machine->irq_request = 0;
-            interrupt_machine(machine, interrupt_irq);
+      while (!machine.state.cpu_halted) {
+        if (machine.irq_request != 0) {
+          machine.irq_delay--;
+          if (machine.irq_delay == 0) {
+            machine.irq_request = 0;
+            interrupt_machine(&machine, interrupt_irq);
           }
         }
-        if (machine->char_request != 0) {
+        if (machine.char_request != 0) {
           if (read(STDIN_FILENO, &requested_character, 1)) {
-            write_memory(machine, machine->cmd_data_address, requested_character);
-            if (machine->char_sync == 0) {
-              interrupt_machine(machine, interrupt_irq);
+            write_memory(&machine, machine.cmd_data_address, requested_character);
+            if (machine.char_sync == 0) {
+              interrupt_machine(&machine, interrupt_irq);
             }
           } else {
-            machine->char_sync = 0;
+            machine.char_sync = 0;
           }
-          machine->char_request = 0;
+          machine.char_request = 0;
         }
-        step_machine(machine);
-        if (machine->state.serial_written) {
-          machine->state.serial_written = 0;
-          if (machine->serial_data != '\0') {
-            printf("%c", machine->serial_data);
+        step_machine(&machine);
+        if (machine.state.serial_written) {
+          machine.state.serial_written = 0;
+          if (machine.serial_data != '\0') {
+            printf("%c", machine.serial_data);
             unfinished_output = 1;
-            if (machine->serial_data == '\n') {
+            if (machine.serial_data == '\n') {
               fflush(stdout);
               unfinished_output = 0;
             }
@@ -82,10 +87,10 @@ int main(int argc, char *argv[]) {
       if (unfinished_output) {
         printf("%%\n");
       }
-      if (machine->exit_code != 0) {
-        printf("Exited with code: %i\n", machine->exit_code);
+      if (machine.exit_code != 0) {
+        printf("Exited with code: %i\n", machine.exit_code);
       }
-      return_code += machine->exit_code;
+      return_code += machine.exit_code;
 #ifdef DEBUG
       printf("Finished running %s\n", argv[i]);
 #endif
