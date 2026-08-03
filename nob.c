@@ -10,13 +10,6 @@
 #define FAKE65C02_SOURCES \
     X(SRC_FOLDER"main.c") \
     X(SRC_FOLDER"machine.c") \
-    X(SRC_FOLDER"ppu.c") \
-    X(SRC_FOLDER"fake65c02.c")
-
-#define FAKE65C02_GUI_SOURCES \
-    X(SRC_FOLDER"gui.c") \
-    X(SRC_FOLDER"machine.c") \
-    X(SRC_FOLDER"ppu.c") \
     X(SRC_FOLDER"fake65c02.c")
 
 #ifdef DEBUG
@@ -38,20 +31,6 @@ int main(int argc, char **argv) {
     #define X(source_path) nob_cmd_append(&cmd, source_path);
         FAKE65C02_SOURCES
     #undef X
-    if (!nob_cmd_run(&cmd)) return 1;
-
-    // ------------------------------------------------------------------------------------
-    // fake65c02_gui
-    nob_cmd_append(&cmd, CC, "-Wall", "-Wextra", "-I"INCLUDES, "-I"THIRD_PARTY, "-o", BUILD_FOLDER"fake65c02_gui");
-    ADD_CFLAGS(&cmd);
-    if (!nob_cmd_append_pc_cflags(&cmd, "raylib")) return 1;
-    #if defined _MSC || defined __MINGW32__
-    nob_cmd_append(&cmd, "-DVCPKG_FIX"); // Temporary fix for raylib on vcpkg
-    #endif // _MSC || __MINGW32__
-    #define X(source_path) nob_cmd_append(&cmd, source_path);
-        FAKE65C02_GUI_SOURCES
-    #undef X
-    if (!nob_cmd_append_pc_libs(&cmd, "raylib")) return 1;
     if (!nob_cmd_run(&cmd)) return 1;
 
     // ------------------------------------------------------------------------------------

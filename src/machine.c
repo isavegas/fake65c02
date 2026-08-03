@@ -1,6 +1,5 @@
 #include "machine.h"
 #include "messaging.h"
-#include "ppu.h"
 
 #include <stdio.h>
 
@@ -9,10 +8,6 @@
 #endif // __MINGW32__
 
 uint8_t read_memory(machine_t *machine, uint16_t address) {
-  if (machine->ppu != NULL && ppu_is_register(address) == 1) {
-    return ppu_read_register(machine->ppu, address);
-  }
-
   if (address >= RAM_LOCATION && address < RAM_LOCATION + RAM_SIZE) {
     return machine->ram[address - RAM_LOCATION];
   }
@@ -25,11 +20,6 @@ uint8_t read_memory(machine_t *machine, uint16_t address) {
 }
 
 void write_memory(machine_t *machine, uint16_t address, uint8_t value) {
-  if (machine->ppu != NULL && ppu_is_register(address) == 1) {
-    ppu_write_register(machine->ppu, address, value);
-    return;
-  }
-
   if (machine->state.serial_enabled && address == machine->serial_address) {
     machine->serial_data = value;
     machine->state.serial_written = 1;
@@ -226,8 +216,6 @@ int step_machine(machine_t *machine) {
         machine->state.cpu_halted = 1;
       }
     }
-    if (machine->ppu != NULL)
-      step_ppu(machine->ppu);
   }
   if (machine->state.cmd_enabled && machine->state.cmd_pending) {
     handle_cmd(machine);
@@ -246,8 +234,6 @@ void unhook_machine(machine_t *machine) {
 void reset_machine(machine_t* machine) {
   if (machine->cpu != NULL)
     reset65c02(machine->cpu);
-  if (machine->ppu != NULL)
-    reset_ppu(machine->ppu);
   // Clear state
   machine->cmd = 0;
   machine->exit_code = 0;

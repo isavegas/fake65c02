@@ -38,9 +38,7 @@ int main(int argc, char *argv[]) {
 #endif
     machine_t machine = {0};
     fake65c02_t cpu = {0};
-    ppu_t ppu = {0};
     machine.cpu = &cpu;
-    machine.ppu = &ppu;
     reset_machine(&machine);
     if (load_rom(&machine, file_name)) {
       machine.state.serial_enabled = 1;
