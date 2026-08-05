@@ -6,29 +6,7 @@
   ],
   "extensions": {
     "recommendations": [
-      "mesonbuild.mesonbuild",
       "llvm-vs-code-extensions.vscode-clangd",
-      "llvm-vs-code-extensions.lldb-dap",
-    ],
-  },
-  "settings": {
-    "C_Cpp.default.compileCommands": "/home/kenzi/fake65c02/build/compile_commands.json",
-    "C_Cpp.default.configurationProvider": "mesonbuild.mesonbuild",
-    "mesonbuild.buildFolder": "build",
-  },
-  "tasks": {
-    "version": "2.0.0",
-    "tasks": [
-      {
-        "type": "meson",
-        "mode": "build",
-        "problemMatcher": ["$meson-gcc"],
-        "group": {
-          "kind": "build",
-          "isDefault": true,
-        },
-        "label": "Meson: Build all targets",
-      },
     ],
   },
   "launch": {
@@ -39,12 +17,6 @@
         "type": "lldb",
         "request": "launch",
         "program": "${workspaceFolder}/build/fake65c02",
-      },
-      {
-        "name": "fake65c02_gui",
-        "type": "lldb",
-        "request": "launch",
-        "program": "${workspaceFolder}/build/fake65c02_gui",
       },
       {
         "name": "nob",
